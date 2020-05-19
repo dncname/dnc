@@ -1,76 +1,13 @@
- 
-## Vision
-
-To provide a more inclusive platform than any previously developed protocol, we will build a layered architecture with a single settlement layer main chain and multiple computing layer sidechains. The settlement layer main chain serves main functions of the base currency of the settlement layer and support token issuance on the settlement layer and coins on the computing sidechains. The settlement layer will focus on asset accounting and cross-chain interaction to keep it simple, efficient and secure. The computing layer will work to expand the network technology stack to support multiple underlying chain technologies and smart contract, including but not limited to WASM virtual machine-based EOSIO application chains, EVM virtual machine-based Ethereum application chains, IELE virtual machine-based Cardano chain, zero-knowledge proof-based Zcash chain, etc.
-
-The computing layers adopt different development techniques, analyze advantages and disadvantages of various blockchain technologies to support multiple forms of sidechains. We offer options for application developers instead of confining them to a specific chain so that developers don’t have to pay for overpriced RAM. We work to increase performance of application chains, segregate security risk, and experiment new contract technologies.
-
-#deploy
-
- 
- 	
-### 1. install with compile
-   
-   	git clone https://github.com/dnc/dnc.git
-    cd dnc
-	git fetch
-	git checkout dnc-v1.4.1
-	git submodule update --init --recursive
-	./eosio_build.sh
-
-then  you must set dnc's config path
-
-	export configpath='~/dnc/config'
-	export datapath='~/dnc/data'
-	mkdir -p ~/dnc/config
-	cp build/contracts/eosio.lock/eosio.lock.abi  build/contracts/eosio.lock/eosio.lock.wasm $configpath
-	cp build/contracts/System/System.abi build/contracts/System/System.wasm $configpath
-	cp build/contracts/System01/System01.abi build/contracts/System01/System01.wasm $configpath
-	cp build/contracts/eosio.token/eosio.token.abi build/contracts/eosio.token/eosio.token.wasm $configpath
-	cp build/contracts/eosio.msig/eosio.msig.abi build/contracts/eosio.msig/eosio.msig.wasm $configpath
-	wget https://raw.githubusercontent.com/dnc/genesis/master/genesis.json 
-	mv activeacc.json config.ini genesis.json $configpath 
-	./build/bin/nodeos --config-dir $configpath --data-dir $datapath
-	
-	
-#if you join node of dnc
-
-### modify config.ini
-you must modify config.ini
-	
-	producer-name = bpname 
-	signature-provider = $public_block_key=KEY:$private_block_key
-
-then restart nodeos
-
-### you must have a account name of dnc
-
-for example account name has a public key and a private key below:
-
- public_key: Eos1111111111111111111
- 
- private_key: 5J1111111111111111111
-
-account name of sign in must is the same with  bpname  
-
-	cleos wallet import $private_key
-	cleos -u https://w1.dnc.cn push action eosio updatebp '{"bpname":"bpname","block_signing_key":"block_signing_key","commission_rate":"commission_rate","url":"https://dnc.io"}' -p bpname
-	
-
-options:
-
-block_signing_key:  the same with public_block_key of config.ini
-
-commission_rate: it is range(0, 10000), commission_rate is 1000 means give bp 10% of dividents
-
-
-(warn: bpname must is the same with account name)
-
-if you finish step above, then success for deploy 
-
-
-
-
-
-
-
+A new generation of fully functional public chain project based on distributed storage
+Summary
+　　In the 1960s, ARPAnet (predecessor of the Internet) appeared in the United States. In 1983, Paul Mockapetris (Paul Mockapetris) invented the DNS system, which is a distributed database to solve the problem of IP addresses difficult to remember. 
+　　In 2009, a self-proclaimed SATOSHI NAKAMOTO guy released the BTC node code, and then the concept of blockchain appeared, which affected the entire financial world. 
+　　In 2020, DNC (Domain Name Chain) emerged, 88 versions of the world's top communities synchronously launched version 1.0, participated in the DNC super node election, used the massive USDT fund pool as a guarantee for exchange, and cooperated with many overseas listed companies. Realize the free exchange of the same rights of currency stocks, reserve multi-country DCEP ports, serve 1 billion-level end users, and expand the application field of blockchain to e-commerce, games, tourism, and finance.
+　　DNC is the basic currency of the DNC chain. It can be composed of a series of names separated by dots. It circulates throughout the DNC ecosystem. The total number is 1 billion, and it gradually decreases (incends) as transactions increase. 
+　　DNC’s  operating company is Starlink (Starlink is a new company independent from SpaceX in the United States), provided security by the IMB, SpaceX invested 1 billion US dollars to support DNC global broadband Internet access satellite network.DNC and US SpaceX successfully launched 400 Starlink satellites. In the live webcast about the launch, SpaceX revealed a series of upgrade details for these satellites, including increased bandwidth and complete decomposition.
+　　 DNC inherited the initial design ideas of the Internet, creating a personal free communication platform, resisting oligopoly and creating a private and safe Cyber Space. The domain name is unique, and the personal identity of the blockchain is also unique, connecting online and offline, and on-chain and off-chain.
+　　DNC will be a cross-chain hybrid structure, covering DPOS + PBFT + POW consensus algorithms, perfectly docking transaction sharding and storage sharding, and providing 2 stable cloud VMs at the bottom to developers worldwide.The general trend of the future development of the Internet is from centralized to distributed development. The emergence of blockchain has greatly promoted the cooperation of distributed resource providers to provide storage, bandwidth, payment and other services. Due to the lack of readable and writable distributed storage and scalable distributed accounting, current blockchain applications are greatly limited in their application scope. 
+　　The current blockchain is mainly used in transfers, deposits, gambling, etc. In addition to the inefficient function of world state (transaction data saved by all miners), storage and accounting cannot handle large-scale transactions and big data storage. This greatly limits the popularity of blockchain applications.DNC planning is the integration of distributed ledger, distributed storage and distributed communication.Any user can use the private key to control their own distributed cloud space, and build their own file system and file-based database system on it, so as to provide the "missing hard disk" for the blockchain system and make the distributed system Developers can use it to build a variety of practical DApps. This may also be a major change to the Internet's infrastructure, which will have a profound impact on the Internet.Distributed communication is also a function that distributed systems must have. Information exchange, whether it is a two-person conversation or a multi-person conversation, whether it is text, voice or video, is extremely important for various types of transactions before, during and after the event. 
+　　The traditional blockchain lacks a readable and writable distributed storage space, which makes it difficult to establish a distributed communication system. The project has a distributed storage function. Communication data can be used as a relay through a distributed cloud to achieve a true point-to-point distributed communication function. .Bitcoin, which implements the peer-to-peer transfer function, is the first-generation blockchain. It mainly builds a distributed system through an incentive mechanism; Ethereum, which implements smart contract functions, is the second-generation blockchain, which mainly uses Turing-complete virtual The machine realizes programmable transfer; and the DNC-like public chain has functions such as distributed storage, infinitely scalable transactions, and distributed communication. It is a fully functional blockchain. A fully functional DApp can be built on it and can be considered It is the third generation blockchain.
+　　Starlink is a new company independent from the American space exploration technology company SpaceX. It is an industry leader in recycling technology, which is much higher than the industry standard. When the service life is reached, the satellite will use the integrated propulsion system to get out of orbit. Even in extreme cases where the propulsion system fails, the satellite will use atmospheric friction to self destruct, which is much better than other high-orbit satellites. (Everyone knows that high-orbit satellites make a lot of space junk)Share a Russell's poem, which coincides with DNC's vision, and worship the power admired by Pythagoras-that is, digital control of ten thousand logistics.
+　　I have wished to understand the hearts of men. I have wished to know why the stars shine. And I have tried to comprehend the Pythagorean power by which number hold sway above the flux. Love and knowledge, so far as they were possible, led upward toward the heavens. But always pity brought me back to earth. Echoes of cries of pain reverberate in my heart. Children in famine, victims tortured by oppressors, helpless old people a burden to their sons, and the whole world of loneliness, poverty, and pain make a mockery of what human life should be. I long to alleviate this evil, but I cannot, and I too suffer.               –Bertrand Russell
