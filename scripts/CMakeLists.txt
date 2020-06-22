@@ -1,6 +1,6 @@
 
-configure_file(eosio-tn_bounce.sh eosio-tn_bounce.sh COPYONLY)
-configure_file(eosio-tn_down.sh eosio-tn_down.sh COPYONLY)
-configure_file(eosio-tn_roll.sh eosio-tn_roll.sh COPYONLY)
-configure_file(eosio-tn_up.sh eosio-tn_up.sh COPYONLY)
+configure_file(dncio-tn_bounce.sh dncio-tn_bounce.sh COPYONLY)
+configure_file(dncio-tn_down.sh dncio-tn_down.sh COPYONLY)
+configure_file(dncio-tn_roll.sh dncio-tn_roll.sh COPYONLY)
+configure_file(dncio-tn_up.sh dncio-tn_up.sh COPYONLY)
 configure_file(abi_is_json.py abi_is_json.py COPYONLY)

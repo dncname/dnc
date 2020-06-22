@@ -1,20 +1,19 @@
 #include <algorithm>
-#include <eosio/chain/config_on_chain.hpp>
-#include <eosio/chain/apply_context.hpp>
-#include <eosio/chain/controller.hpp>
-#include <eosio/chain/transaction_context.hpp>
-#include <eosio/chain/exceptions.hpp>
-#include <eosio/chain/wasm_interface.hpp>
-#include <eosio/chain/generated_transaction_object.hpp>
-#include <eosio/chain/authorization_manager.hpp>
-#include <eosio/chain/resource_limits.hpp>
-#include <eosio/chain/account_object.hpp>
-#include <eosio/chain/global_property_object.hpp>
+#include <dncio/chain/apply_context.hpp>
+#include <dncio/chain/controller.hpp>
+#include <dncio/chain/transaction_context.hpp>
+#include <dncio/chain/exceptions.hpp>
+#include <dncio/chain/wasm_interface.hpp>
+#include <dncio/chain/generated_transaction_object.hpp>
+#include <dncio/chain/authorization_manager.hpp>
+#include <dncio/chain/resource_limits.hpp>
+#include <dncio/chain/account_object.hpp>
+#include <dncio/chain/global_property_object.hpp>
 #include <boost/container/flat_set.hpp>
 
 using boost::container::flat_set;
 
-namespace eosio { namespace chain {
+namespace dncio { namespace chain {
 
 static inline void print_debug(account_name receiver, const action_trace& ar) {
    if (!ar.console.empty()) {
@@ -30,112 +29,87 @@ static inline void print_debug(account_name receiver, const action_trace& ar) {
    }
 }
 
-void apply_context::exec_one( action_trace& trace )
+action_trace apply_context::exec_one()
 {
    auto start = fc::time_point::now();
+
+   const auto& cfg = control.get_global_properties().configuration;
+   try {
+      const auto &a = control.get_account(receiver);
+      privileged = a.privileged;
+      auto native = control.find_apply_handler(receiver, act.account, act.name);
+      if( native ) {
+         if( control.is_producing_block() ) {
+            control.check_contract_list( receiver );
+         }
+         (*native)(*this);
+      }
+
+      if( a.code.size() > 0
+          && !(act.account == config::system_account_name && act.name == N(setcode) && receiver == config::system_account_name) )
+      {
+         if( control.is_producing_block() ) {
+            control.check_contract_list( receiver );
+         }
+         try {
+            control.get_wasm_interface().apply(a.code_version, a.code, *this);
+         } catch ( const wasm_exit& ){}
+      }
+
+
+   } FC_CAPTURE_AND_RETHROW((_pending_console_output.str()));
 
    action_receipt r;
    r.receiver         = receiver;
    r.act_digest       = digest_type::hash(act);
-
-   trace.trx_id = trx_context.id;
-   trace.block_num = control.pending_block_state()->block_num;
-   trace.block_time = control.pending_block_time();
-   trace.producer_block_id = control.pending_producer_block_id();
-   trace.act = act;
-   trace.context_free = context_free;
-
-   const auto& cfg = control.get_global_properties().configuration;
-   try {
-      try {
-         const auto& a = control.get_account( receiver );
-         privileged = a.privileged;
-         auto native = control.find_apply_handler( receiver, act.account, act.name );
-         if( native ) {
-            if( trx_context.enforce_whiteblacklist && control.is_producing_block() ) {
-               control.check_contract_list( receiver );
-               control.check_action_list( act.account, act.name );
-            }
-            (*native)( *this );
-         }
-
-         if(!((act.account == config::system_account_name) && (act.name == N(onfee)))) {
-            if( a.code.size() > 0
-                && !( act.account == config::system_account_name && act.name == N(setcode) &&
-                      receiver == config::system_account_name )) {
-               if( trx_context.enforce_whiteblacklist && control.is_producing_block()) {
-                  control.check_contract_list(receiver);
-                  control.check_action_list(act.account, act.name);
-               }
-               try {
-                  control.get_wasm_interface().apply(a.code_version, a.code, *this);
-               } catch( const wasm_exit& ) {}
-            }
-         }
-      } FC_RETHROW_EXCEPTIONS( warn, "pending console output: ${console}", ("console", _pending_console_output.str()) )
-   } catch( fc::exception& e ) {
-      trace.receipt = r; // fill with known data
-      trace.except = e;
-      finalize_trace( trace, start );
-      throw;
-   }
-
    r.global_sequence  = next_global_sequence();
    r.recv_sequence    = next_recv_sequence( receiver );
 
    const auto& account_sequence = db.get<account_sequence_object, by_name>(act.account);
-   r.code_sequence    = account_sequence.code_sequence; // could be modified by action execution above
-   r.abi_sequence     = account_sequence.abi_sequence;  // could be modified by action execution above
+   r.code_sequence    = account_sequence.code_sequence;
+   r.abi_sequence     = account_sequence.abi_sequence;
 
    for( const auto& auth : act.authorization ) {
       r.auth_sequence[auth.actor] = next_auth_sequence( auth.actor );
    }
 
-   trace.receipt = r;
+   action_trace t(r);
+   t.trx_id = trx_context.id;
+   t.act = act;
+   t.console = _pending_console_output.str();
 
    trx_context.executed.emplace_back( move(r) );
 
-   finalize_trace( trace, start );
-
    if ( control.contracts_console() ) {
-      print_debug(receiver, trace);
+      print_debug(receiver, t);
    }
-}
 
-void apply_context::finalize_trace( action_trace& trace, const fc::time_point& start )
-{
-   trace.account_ram_deltas = std::move( _account_ram_deltas );
-   _account_ram_deltas.clear();
-
-   trace.console = _pending_console_output.str();
    reset_console();
 
-   trace.elapsed = fc::time_point::now() - start;
+   t.elapsed = fc::time_point::now() - start;
+   return t;
 }
 
-void apply_context::exec( action_trace& trace )
+void apply_context::exec()
 {
    _notified.push_back(receiver);
-   exec_one( trace );
+   trace = exec_one();
    for( uint32_t i = 1; i < _notified.size(); ++i ) {
       receiver = _notified[i];
-      trace.inline_traces.emplace_back( );
-      exec_one( trace.inline_traces.back() );
+      trace.inline_traces.emplace_back( exec_one() );
    }
 
    if( _cfa_inline_actions.size() > 0 || _inline_actions.size() > 0 ) {
-      EOS_ASSERT( recurse_depth < control.get_global_properties().configuration.max_inline_action_depth,
-                  transaction_exception, "max inline action depth per transaction reached" );
+      dnc_ASSERT( recurse_depth < control.get_global_properties().configuration.max_inline_action_depth,
+                  transaction_exception, "inline action recursion depth reached" );
    }
 
    for( const auto& inline_action : _cfa_inline_actions ) {
-      trx_context.dispatch_fee_action(trace.inline_traces, inline_action);
       trace.inline_traces.emplace_back();
       trx_context.dispatch_action( trace.inline_traces.back(), inline_action, inline_action.account, true, recurse_depth + 1 );
    }
 
    for( const auto& inline_action : _inline_actions ) {
-      trx_context.dispatch_fee_action(trace.inline_traces, inline_action);
       trace.inline_traces.emplace_back();
       trx_context.dispatch_action( trace.inline_traces.back(), inline_action, inline_action.account, false, recurse_depth + 1 );
    }
@@ -146,6 +120,27 @@ bool apply_context::is_account( const account_name& account )const {
    return nullptr != db.find<account_object,by_name>( account );
 }
 
+void apply_context::setcode_require_authorization( const account_name& account ) {
+   for( uint32_t i=0; i < act.authorization.size(); i++ ) {
+     auto producers = get_active_producers();
+
+     // allow active BPs to authorize
+     for (auto j:producers) {
+       if (act.authorization[i].actor == j) {
+         used_authorizations[i] = true;
+         return;
+       }
+     }
+
+     // do not allow dncio account to authorize it.
+     //if( act.authorization[i].actor == account ) {
+     //   used_authorizations[i] = true;
+     //   return;
+     //}
+   }
+   dnc_ASSERT(false, missing_auth_exception, "missing authority of one of the BPs");
+}
+
 void apply_context::require_authorization( const account_name& account ) {
    for( uint32_t i=0; i < act.authorization.size(); i++ ) {
      if( act.authorization[i].actor == account ) {
@@ -153,7 +148,7 @@ void apply_context::require_authorization( const account_name& account ) {
         return;
      }
    }
-   EOS_ASSERT( false, missing_auth_exception, "missing authority of ${account}", ("account",account));
+   dnc_ASSERT( false, missing_auth_exception, "missing authority of ${account}", ("account",account));
 }
 
 bool apply_context::has_authorization( const account_name& account )const {
@@ -172,7 +167,7 @@ void apply_context::require_authorization(const account_name& account,
            return;
         }
      }
-  EOS_ASSERT( false, missing_auth_exception, "missing authority of ${account}/${permission}",
+  dnc_ASSERT( false, missing_auth_exception, "missing authority of ${account}/${permission}",
               ("account",account)("permission",permission) );
 }
 
@@ -206,79 +201,33 @@ void apply_context::require_recipient( account_name recipient ) {
  *   can better understand the security risk.
  */
 void apply_context::execute_inline( action&& a ) {
-   auto *code = control.db().find<account_object, by_name>(a.account);
-   EOS_ASSERT(code != nullptr, action_validate_exception,
-              "inline action's code account ${account} does not exist", ( "account", a.account ));
-   if( control.head_block_num() > 4470000 ) {
-      EOS_ASSERT(       ( (a.name != N(onfee))   || ( a.account != config::system_account_name))
-                     && ( (a.name != N(onblock)) || ( a.account != config::system_account_name)),
-                     action_validate_exception, "no call" );
-   }
-
-   bool enforce_actor_whitelist_blacklist = trx_context.enforce_whiteblacklist && control.is_producing_block();
-   flat_set<account_name> actors;
-
-   bool disallow_send_to_self_bypass = false; // eventually set to whether the appropriate protocol feature has been activated
-   bool send_to_self = (a.account == receiver);
-   bool inherit_parent_authorizations = (!disallow_send_to_self_bypass && send_to_self && (receiver == act.account) && control.is_producing_block());
-
-   flat_set<permission_level> inherited_authorizations;
-   if( inherit_parent_authorizations ) {
-      inherited_authorizations.reserve( a.authorization.size() );
-   }
+   auto* code = control.db().find<account_object, by_name>(a.account);
+   dnc_ASSERT( code != nullptr, action_validate_exception,
+               "inline action's code account ${account} does not exist", ("account", a.account) );
 
    for( const auto& auth : a.authorization ) {
       auto* actor = control.db().find<account_object, by_name>(auth.actor);
-      EOS_ASSERT( actor != nullptr, action_validate_exception,
+      dnc_ASSERT( actor != nullptr, action_validate_exception,
                   "inline action's authorizing actor ${account} does not exist", ("account", auth.actor) );
-      EOS_ASSERT( control.get_authorization_manager().find_permission(auth) != nullptr, action_validate_exception,
-                  "inline action's authorizations include a non-existent permission: ${permission}",
+      dnc_ASSERT( control.get_authorization_manager().find_permission(auth) != nullptr, action_validate_exception,
+                  "inline action's authorizations include a non-existent permission: {permission}",
                   ("permission", auth) );
-      if( enforce_actor_whitelist_blacklist )
-         actors.insert( auth.actor );
-
-      if( inherit_parent_authorizations && std::find(act.authorization.begin(), act.authorization.end(), auth) != act.authorization.end() ) {
-         inherited_authorizations.insert( auth );
-      }
    }
 
-   if( enforce_actor_whitelist_blacklist ) {
-      control.check_actor_list( actors );
-   }
+   // No need to check authorization if: replaying irreversible blocks; contract is privileged; or, contract is calling itself.
+   if( !control.skip_auth_check() && !privileged && a.account != receiver ) {
+      control.get_authorization_manager()
+             .check_authorization( {a},
+                                   {},
+                                   {{receiver, config::dncio_code_name}},
+                                   control.pending_block_time() - trx_context.published,
+                                   std::bind(&transaction_context::checktime, &this->trx_context),
+                                   false
+                                 );
 
-   // No need to check authorization if replaying irreversible blocks or contract is privileged
-   if( !control.skip_auth_check() && !privileged ) {
-      try {
-         control.get_authorization_manager()
-                .check_authorization( {a},
-                                      {},
-                                      {{receiver, config::eosio_code_name}},
-                                      control.pending_block_time() - trx_context.published,
-                                      std::bind(&transaction_context::checktime, &this->trx_context),
-                                      false,
-                                      inherited_authorizations
-                                    );
-
-         //QUESTION: Is it smart to allow a deferred transaction that has been delayed for some time to get away
-         //          with sending an inline action that requires a delay even though the decision to send that inline
-         //          action was made at the moment the deferred transaction was executed with potentially no forewarning?
-      } catch( const fc::exception& e ) {
-         if( disallow_send_to_self_bypass || !send_to_self ) {
-            throw;
-         } else if( control.is_producing_block() ) {
-            subjective_block_production_exception new_exception(FC_LOG_MESSAGE( error, "Authorization failure with inline action sent to self"));
-            for (const auto& log: e.get_log()) {
-               new_exception.append_log(log);
-            }
-            throw new_exception;
-         }
-      } catch( ... ) {
-         if( disallow_send_to_self_bypass || !send_to_self ) {
-            throw;
-         } else if( control.is_producing_block() ) {
-            EOS_THROW(subjective_block_production_exception, "Unexpected exception occurred validating inline action sent to self");
-         }
-      }
+      //QUESTION: Is it smart to allow a deferred transaction that has been delayed for some time to get away
+      //          with sending an inline action that requires a delay even though the decision to send that inline
+      //          action was made at the moment the deferred transaction was executed with potentially no forewarning?
    }
 
    _inline_actions.emplace_back( move(a) );
@@ -286,10 +235,10 @@ void apply_context::execute_inline( action&& a ) {
 
 void apply_context::execute_context_free_inline( action&& a ) {
    auto* code = control.db().find<account_object, by_name>(a.account);
-   EOS_ASSERT( code != nullptr, action_validate_exception,
+   dnc_ASSERT( code != nullptr, action_validate_exception,
                "inline action's code account ${account} does not exist", ("account", a.account) );
 
-   EOS_ASSERT( a.authorization.size() == 0, action_validate_exception,
+   dnc_ASSERT( a.authorization.size() == 0, action_validate_exception,
                "context-free actions cannot have authorizations" );
 
    _cfa_inline_actions.emplace_back( move(a) );
@@ -297,13 +246,10 @@ void apply_context::execute_context_free_inline( action&& a ) {
 
 
 void apply_context::schedule_deferred_transaction( const uint128_t& sender_id, account_name payer, transaction&& trx, bool replace_existing ) {
-   EOS_ASSERT( trx.context_free_actions.size() == 0, cfa_inside_generated_tx, "context free actions are not currently allowed in generated transactions" );
+   FC_ASSERT( trx.context_free_actions.size() == 0, "context free actions are not currently allowed in generated transactions" );
    trx.expiration = control.pending_block_time() + fc::microseconds(999'999); // Rounds up to nearest second (makes expiration check unnecessary)
    trx.set_reference_block(control.head_block_id()); // No TaPoS check necessary
-
-   bool enforce_actor_whitelist_blacklist = trx_context.enforce_whiteblacklist && control.is_producing_block()
-                                             && !control.sender_avoids_whitelist_blacklist_enforcement( receiver );
-   trx_context.validate_referenced_accounts( trx, enforce_actor_whitelist_blacklist );
+   control.validate_referenced_accounts( trx );
 
    // Charge ahead of time for the additional net usage needed to retire the deferred transaction
    // whether that be by successfully executing, soft failure, hard failure, or expiration.
@@ -318,69 +264,32 @@ void apply_context::schedule_deferred_transaction( const uint128_t& sender_id, a
          require_authorization(payer); /// uses payer's storage
       }
 
-      // Originally this code bypassed authorization checks if a contract was deferring only actions to itself.
-      // The idea was that the code could already do whatever the deferred transaction could do, so there was no point in checking authorizations.
-      // But this is not true. The original implementation didn't validate the authorizations on the actions which allowed for privilege escalation.
-      // It would make it possible to bill RAM to some unrelated account.
-      // Furthermore, even if the authorizations were forced to be a subset of the current action's authorizations, it would still violate the expectations
-      // of the signers of the original transaction, because the deferred transaction would allow billing more CPU and network bandwidth than the maximum limit
-      // specified on the original transaction.
-      // So, the deferred transaction must always go through the authorization checking if it is not sent by a privileged contract.
-      // However, the old logic must still be considered because it cannot objectively change until a consensus protocol upgrade.
-
-      bool disallow_send_to_self_bypass = false; // eventually set to whether the appropriate protocol feature has been activated
-
-      auto is_sending_only_to_self = [&trx]( const account_name& self ) {
-         bool send_to_self = true;
-         for( const auto& act : trx.actions ) {
-            if( act.account != self ) {
-               send_to_self = false;
-               break;
-            }
+      // if a contract is deferring only actions to itself then there is no need
+      // to check permissions, it could have done everything anyway.
+      bool check_auth = false;
+      for( const auto& act : trx.actions ) {
+         if( act.account != receiver ) {
+            check_auth = true;
+            break;
          }
-         return send_to_self;
-      };
-
-      try {
+      }
+      if( check_auth ) {
          control.get_authorization_manager()
                 .check_authorization( trx.actions,
                                       {},
-                                      {{receiver, config::eosio_code_name}},
+                                      {{receiver, config::dncio_code_name}},
                                       delay,
                                       std::bind(&transaction_context::checktime, &this->trx_context),
                                       false
                                     );
-      } catch( const fc::exception& e ) {
-         if( disallow_send_to_self_bypass || !is_sending_only_to_self(receiver) ) {
-            throw;
-         } else {
-            subjective_block_production_exception new_exception(FC_LOG_MESSAGE( error, "Authorization failure with sent deferred transaction consisting only of actions to self"));
-            for (const auto& log: e.get_log()) {
-               new_exception.append_log(log);
-            }
-            throw new_exception;
-         }
-      } catch( ... ) {
-         if( disallow_send_to_self_bypass || !is_sending_only_to_self(receiver) ) {
-            throw;
-         } else {
-            EOS_THROW(subjective_block_production_exception, "Unexpected exception occurred validating sent deferred transaction consisting only of actions to self");
-         }
       }
    }
 
    uint32_t trx_size = 0;
-   if ( auto ptr = db.find<generated_transaction_object,by_sender_id>(boost::make_tuple(receiver, sender_id)) ) {
-      EOS_ASSERT( replace_existing, deferred_tx_duplicate, "deferred transaction with the same sender_id and payer already exists" );
-
-      // TODO: Remove the following subjective check when the deferred trx replacement RAM bug has been fixed with a hard fork.
-      EOS_ASSERT( !control.is_producing_block(), subjective_block_production_exception,
-                  "Replacing a deferred transaction is temporarily disabled." );
-
-      // TODO: The logic of the next line needs to be incorporated into the next hard fork.
-      // add_ram_usage( ptr->payer, -(config::billable_size_v<generated_transaction_object> + ptr->packed_trx.size()) );
-
-      db.modify<generated_transaction_object>( *ptr, [&]( auto& gtx ) {
+   auto& d = control.db();
+   if ( auto ptr = d.find<generated_transaction_object,by_sender_id>(boost::make_tuple(receiver, sender_id)) ) {
+      dnc_ASSERT( replace_existing, deferred_tx_duplicate, "deferred transaction with the same sender_id and payer already exists" );
+      d.modify<generated_transaction_object>( *ptr, [&]( auto& gtx ) {
             gtx.sender      = receiver;
             gtx.sender_id   = sender_id;
             gtx.payer       = payer;
@@ -391,7 +300,7 @@ void apply_context::schedule_deferred_transaction( const uint128_t& sender_id, a
             trx_size = gtx.set( trx );
          });
    } else {
-      db.create<generated_transaction_object>( [&]( auto& gtx ) {
+      d.create<generated_transaction_object>( [&]( auto& gtx ) {
             gtx.trx_id      = trx.id();
             gtx.sender      = receiver;
             gtx.sender_id   = sender_id;
@@ -404,16 +313,14 @@ void apply_context::schedule_deferred_transaction( const uint128_t& sender_id, a
          });
    }
 
-   EOS_ASSERT( control.is_ram_billing_in_notify_allowed() || (receiver == act.account) || (receiver == payer) || privileged,
-               subjective_block_production_exception, "Cannot charge RAM to other accounts during notify." );
-   add_ram_usage( payer, (config::billable_size_v<generated_transaction_object> + trx_size) );
+   trx_context.add_ram_usage( payer, (config::billable_size_v<generated_transaction_object> + trx_size) );
 }
 
 bool apply_context::cancel_deferred_transaction( const uint128_t& sender_id, account_name sender ) {
    auto& generated_transaction_idx = db.get_mutable_index<generated_transaction_multi_index>();
    const auto* gto = db.find<generated_transaction_object,by_sender_id>(boost::make_tuple(sender, sender_id));
    if ( gto ) {
-      add_ram_usage( gto->payer, -(config::billable_size_v<generated_transaction_object> + gto->packed_trx.size()) );
+      trx_context.add_ram_usage( gto->payer, -(config::billable_size_v<generated_transaction_object> + gto->packed_trx.size()) );
       generated_transaction_idx.remove(*gto);
    }
    return gto;
@@ -467,12 +374,10 @@ bytes apply_context::get_packed_transaction() {
 void apply_context::update_db_usage( const account_name& payer, int64_t delta ) {
    if( delta > 0 ) {
       if( !(privileged || payer == account_name(receiver)) ) {
-         EOS_ASSERT( control.is_ram_billing_in_notify_allowed() || (receiver == act.account),
-                     subjective_block_production_exception, "Cannot charge RAM to other accounts during notify." );
          require_authorization( payer );
       }
    }
-   add_ram_usage(payer, delta);
+   trx_context.add_ram_usage(payer, delta);
 }
 
 
@@ -491,8 +396,8 @@ int apply_context::get_action( uint32_t type, uint32_t index, char* buffer, size
          return -1;
       act_ptr = &trx.actions[index];
    }
-
-   EOS_ASSERT(act_ptr, action_not_found_exception, "action is not found" );
+   
+   FC_ASSERT(act_ptr, "action is not found" ); 
 
    auto ps = fc::raw::pack_size( *act_ptr );
    if( ps <= buffer_size ) {
@@ -526,7 +431,7 @@ int apply_context::db_store_i64( uint64_t code, uint64_t scope, uint64_t table, 
    const auto& tab = find_or_create_table( code, scope, table, payer );
    auto tableid = tab.id;
 
-   EOS_ASSERT( payer != account_name(), invalid_table_payer, "must specify a valid account to pay for new record" );
+   FC_ASSERT( payer != account_name(), "must specify a valid account to pay for new record" );
 
    const auto& obj = db.create<key_value_object>( [&]( auto& o ) {
       o.t_id        = tableid;
@@ -551,7 +456,7 @@ void apply_context::db_update_i64( int iterator, account_name payer, const char*
    const key_value_object& obj = keyval_cache.get( iterator );
 
    const auto& table_obj = keyval_cache.get_table( obj.t_id );
-   EOS_ASSERT( table_obj.code == receiver, table_access_violation, "db access violation" );
+   FC_ASSERT( table_obj.code == receiver, "db access violation" );
 
 //   require_write_lock( table_obj.scope );
 
@@ -582,7 +487,7 @@ void apply_context::db_remove_i64( int iterator ) {
    const key_value_object& obj = keyval_cache.get( iterator );
 
    const auto& table_obj = keyval_cache.get_table( obj.t_id );
-   EOS_ASSERT( table_obj.code == receiver, table_access_violation, "db access violation" );
+   FC_ASSERT( table_obj.code == receiver, "db access violation" );
 
 //   require_write_lock( table_obj.scope );
 
@@ -633,7 +538,7 @@ int apply_context::db_previous_i64( int iterator, uint64_t& primary ) {
    if( iterator < -1 ) // is end iterator
    {
       auto tab = keyval_cache.find_table_by_end_iterator(iterator);
-      EOS_ASSERT( tab, invalid_table_iterator, "not a valid end iterator" );
+      FC_ASSERT( tab, "not a valid end iterator" );
 
       auto itr = idx.upper_bound(tab->id);
       if( idx.begin() == idx.end() || itr == idx.begin() ) return -1; // Empty table
@@ -737,17 +642,5 @@ uint64_t apply_context::next_auth_sequence( account_name actor ) {
    return rs.auth_sequence;
 }
 
-void apply_context::add_ram_usage( account_name account, int64_t ram_delta ) {
-   trx_context.add_ram_usage( account, ram_delta );
 
-   auto p = _account_ram_deltas.emplace( account, ram_delta );
-   if( !p.second ) {
-      p.first->delta += ram_delta;
-   }
-}
-
-int64_t apply_context::get_num_config_on_chain( const name& typ ) {
-   return ::eosio::chain::get_num_config_on_chain( db, typ );
-}
-
-} } /// eosio::chain
+} } /// dncio::chain

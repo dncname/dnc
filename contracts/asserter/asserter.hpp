@@ -1,15 +1,15 @@
 /**
  *  @file
- *  @copyright defined in eos/LICENSE.txt
+ *  @copyright defined in dnc/LICENSE.txt
  */
 
-#include <eosiolib/eosio.hpp>
+#include <dnciolib/dncio.hpp>
 
 namespace asserter {
    struct assertdef {
       int8_t      condition;
       std::string message;
 
-      EOSLIB_SERIALIZE( assertdef, (condition)(message) )
+      dncLIB_SERIALIZE( assertdef, (condition)(message) )
    };
 }

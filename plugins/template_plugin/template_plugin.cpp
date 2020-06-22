@@ -1,10 +1,10 @@
 /**
  *  @file
- *  @copyright defined in eos/LICENSE.txt
+ *  @copyright defined in dnc/LICENSE.txt
  */
-#include <eosio/template_plugin/template_plugin.hpp>
+#include <dncio/template_plugin/template_plugin.hpp>
 
-namespace eosio {
+namespace dncio {
    static appbase::abstract_plugin& _template_plugin = app().register_plugin<template_plugin>();
 
 class template_plugin_impl {
@@ -22,12 +22,9 @@ void template_plugin::set_program_options(options_description&, options_descript
 }
 
 void template_plugin::plugin_initialize(const variables_map& options) {
-   try {
-      if( options.count( "option-name" )) {
-         // Handle the option
-      }
+   if(options.count("option-name")) {
+      // Handle the option
    }
-   FC_LOG_AND_RETHROW()
 }
 
 void template_plugin::plugin_startup() {

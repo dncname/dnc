@@ -1,17 +1,17 @@
 #include "System.hpp"
 
-namespace eosiosystem {
+namespace dnciosystem {
 
 void system_contract::update_elected_bps() {
   bps_table bps_tbl( _self, _self );
 
-  std::vector<eosio::producer_key> vote_schedule;
+  std::vector<dncio::producer_key> vote_schedule;
   std::vector<int64_t> sorts( NUM_OF_TOP_BPS, 0 );
 
   for ( auto it = bps_tbl.cbegin(); it != bps_tbl.cend(); ++it ) {
     for ( int i = 0 ; i < NUM_OF_TOP_BPS ; ++i ) {
       if ( sorts[size_t(i)] <= it->total_staked ) {
-        eosio::producer_key key;
+        dncio::producer_key key;
         key.producer_name = it->name;
         key.block_signing_key = it->block_signing_key;
         vote_schedule.insert( vote_schedule.begin() + i, key );
@@ -38,10 +38,10 @@ void system_contract::transfer( const account_name from, const account_name to, 
   const auto & from_act = acnts_tbl.get( from, "from account is not found in accounts table" );
   const auto & to_act = acnts_tbl.get( to, "to account is not found in accounts table" );
 
-  eosio_assert( quantity.symbol == SYMBOL, "only support DNC which has 4 precision" );
+  dncio_assert( quantity.symbol == SYMBOL, "only support dnc which has 4 precision" );
   //from_act.available is already handling fee
-  eosio_assert( 0 <= quantity.amount && quantity.amount <= from_act.available.amount, "need 0.0000 DNC < quantity < available balance" );
-  eosio_assert( memo.size() <= 256, "memo has more than 256 bytes" );
+  dncio_assert( 0 <= quantity.amount && quantity.amount <= from_act.available.amount, "need 0.0000 dnc < quantity < available balance" );
+  dncio_assert( memo.size() <= 256, "memo has more than 256 bytes" );
 
   acnts_tbl.modify( from_act, 0, [&]( account_info & a ) {
     a.available -= quantity;
@@ -55,8 +55,8 @@ void system_contract::transfer( const account_name from, const account_name to, 
 void system_contract::updatebp( const account_name bpname, const public_key block_signing_key,
                                 const uint32_t commission_rate, const std::string & url ) {
   require_auth( bpname );
-  eosio_assert( url.size() < 64, "url too long" );
-  eosio_assert( 1 <= commission_rate && commission_rate <= 10000, "need 1 <= commission rate <= 10000" );
+  dncio_assert( url.size() < 64, "url too long" );
+  dncio_assert( 1 <= commission_rate && commission_rate <= 10000, "need 1 <= commission rate <= 10000" );
 
   bps_table bps_tbl( _self, _self );
   auto bp = bps_tbl.find( bpname );
@@ -80,8 +80,8 @@ void system_contract::vote( const account_name voter, const account_name bpname,
   bps_table bps_tbl( _self, _self );
   const auto & bp  = bps_tbl.get( bpname, "bpname is not registered" );
 
-  eosio_assert( stake.symbol == SYMBOL, "only support DNC which has 4 precision" );
-  eosio_assert( 0 <= stake.amount && stake.amount % 10000 == 0, "need stake quantity >= 0.0000 DNC and quantity is integer" );
+  dncio_assert( stake.symbol == SYMBOL, "only support dnc which has 4 precision" );
+  dncio_assert( 0 <= stake.amount && stake.amount % 10000 == 0, "need stake quantity >= 0.0000 dnc and quantity is integer" );
 
   int64_t change = 0;
   votes_table votes_tbl( _self, voter );
@@ -89,7 +89,7 @@ void system_contract::vote( const account_name voter, const account_name bpname,
   if( vts == votes_tbl.end() ){
     change = stake.amount;
     //act.available is already handling fee
-    eosio_assert( stake.amount <= act.available.amount, "need stake quantity < your available balance" );
+    dncio_assert( stake.amount <= act.available.amount, "need stake quantity < your available balance" );
 
     votes_tbl.emplace( voter,[&]( vote_info & v ) {
       v.bpname = bpname;
@@ -98,7 +98,7 @@ void system_contract::vote( const account_name voter, const account_name bpname,
   } else {
     change = stake.amount - vts->staked.amount;
     //act.available is already handling fee
-    eosio_assert( change <= act.available.amount, "need stake change quantity < your available balance" );
+    dncio_assert( change <= act.available.amount, "need stake change quantity < your available balance" );
 
     votes_tbl.modify( vts, 0, [&]( vote_info & v ) {
       v.voteage += v.staked.amount / 10000 * ( current_block_num() - v.voteage_update_height );
@@ -132,8 +132,8 @@ void system_contract::unfreeze( const account_name voter, const account_name bpn
   votes_table votes_tbl( _self, voter );
   const auto & vts = votes_tbl.get( bpname, "voter have not add votes to the the producer yet" );
 
-  eosio_assert( vts.unstake_height + FROZEN_DELAY < current_block_num(), "unfreeze is not available yet" );
-  eosio_assert( 0 < vts.unstaking.amount , "need unstaking quantity > 0.0000 DNC" );
+  dncio_assert( vts.unstake_height + FROZEN_DELAY < current_block_num(), "unfreeze is not available yet" );
+  dncio_assert( 0 < vts.unstaking.amount , "need unstaking quantity > 0.0000 dnc" );
 
   acnts_tbl.modify( act, 0, [&]( account_info & a ) {
     a.available += vts.unstaking;
@@ -157,11 +157,11 @@ void system_contract::claim( const account_name voter, const account_name bpname
 
   int64_t newest_voteage = vts.voteage + vts.staked.amount / 10000 * ( current_block_num() - vts.voteage_update_height );
   int64_t newest_total_voteage = bp.total_voteage + bp.total_staked * ( current_block_num() - bp.voteage_update_height );
-  eosio_assert( 0 < newest_total_voteage, "claim is not available yet" );
+  dncio_assert( 0 < newest_total_voteage, "claim is not available yet" );
 
   int128_t amount_voteage = (int128_t)bp.rewards_pool.amount * (int128_t)newest_voteage;
   asset reward = asset( static_cast<int64_t>( (int128_t)amount_voteage / (int128_t)newest_total_voteage ), SYMBOL );
-  eosio_assert( 0 <= reward.amount && reward.amount <= bp.rewards_pool.amount, "need 0 <= claim reward quantity <= rewards_pool" );
+  dncio_assert( 0 <= reward.amount && reward.amount <= bp.rewards_pool.amount, "need 0 <= claim reward quantity <= rewards_pool" );
 
   acnts_tbl.modify( act, 0, [&]( account_info & a ) {
     print( "--claim--reward----", reward, "\n" );
@@ -214,7 +214,7 @@ void system_contract::onblock( const block_timestamp, const account_name bpname,
 
   asset reward_bp = asset( BLOCK_REWARDS_BP, SYMBOL );
   asset commission = asset( static_cast<int64_t >( reward_bp.amount * bp.commission_rate / 10000 ), SYMBOL );
-  eosio_assert( 0 <= commission.amount && commission.amount <= BLOCK_REWARDS_BP, "need 0 <= commission reward quantity <= bp block rewards" );
+  dncio_assert( 0 <= commission.amount && commission.amount <= BLOCK_REWARDS_BP, "need 0 <= commission reward quantity <= bp block rewards" );
 
   acnts_tbl.modify( b1, 0, [&]( account_info & a ) {
     a.available +=  asset( BLOCK_REWARDS_B1, SYMBOL );
@@ -234,11 +234,11 @@ void system_contract::onblock( const block_timestamp, const account_name bpname,
 }
 
 void system_contract::onfee( const account_name actor, const asset fee, const account_name bpname ) {
-  print( "-----onfee-----", eosio::name{.value=actor}, "-----", fee, "\n" );
+  print( "-----onfee-----", dncio::name{.value=actor}, "-----", fee, "\n" );
 
   accounts_table acnts_tbl( _self, _self );
   const auto & act = acnts_tbl.get( actor, "account is not found in accounts table" );
-  eosio_assert( fee.amount <= act.available.amount, "overdrawn available balance" );
+  dncio_assert( fee.amount <= act.available.amount, "overdrawn available balance" );
 
   bps_table bps_tbl( _self, _self );
   const auto & bp = bps_tbl.get( bpname, "bpname is not registered" );

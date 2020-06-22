@@ -1,8 +1,8 @@
 /**
  *  @file
- *  @copyright defined in eos/LICENSE.txt
+ *  @copyright defined in dnc/LICENSE.txt
  */
-#include <eosiolib/eosio.hpp>
+#include <dnciolib/dncio.hpp>
 #include "../test_api/test_api.hpp"
 
 #include "test_db.cpp"
@@ -23,7 +23,7 @@ extern "C" {
       WASM_TEST_HANDLER_EX(test_db, misaligned_secondary_key256_tests);
 
       //unhandled test call
-      eosio_assert(false, "Unknown Test");
+      dncio_assert(false, "Unknown Test");
    }
 
 }

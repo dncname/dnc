@@ -1,12 +1,23 @@
 /**
  *  @file
- *  @copyright defined in eos/LICENSE.txt
+ *  @copyright defined in dnc/LICENSE.txt
  */
-#include <eosio/chain/asset.hpp>
+#include <dncio/chain/asset.hpp>
+#include <dncio/chain/exceptions.hpp>
 #include <boost/rational.hpp>
 #include <fc/reflect/variant.hpp>
 
-namespace eosio { namespace chain {
+namespace dncio { namespace chain {
+
+void asset::reflector_verify()const {
+  dnc_ASSERT( is_amount_within_range(), asset_type_exception, "magnitude of asset amount must be less than 2^62" );
+  dnc_ASSERT( sym.valid(), asset_type_exception, "invalid symbol" );
+}
+
+asset::asset(share_type a, symbol id) :amount(a), sym(id) {
+   dnc_ASSERT( is_amount_within_range(), asset_type_exception, "magnitude of asset amount must be less than 2^62" );
+   dnc_ASSERT( sym.valid(), asset_type_exception, "invalid symbol" );
+}
 
 uint8_t asset::decimals()const {
    return sym.decimals();
@@ -39,20 +50,20 @@ asset asset::from_string(const string& from)
 
       // Find space in order to split amount and symbol
       auto space_pos = s.find(' ');
-      EOS_ASSERT((space_pos != string::npos), asset_type_exception, "Asset's amount and symbol should be separated with space");
+      dnc_ASSERT((space_pos != string::npos), asset_type_exception, "Asset's amount and symbol should be separated with space");
       auto symbol_str = fc::trim(s.substr(space_pos + 1));
       auto amount_str = s.substr(0, space_pos);
 
       // Ensure that if decimal point is used (.), decimal fraction is specified
       auto dot_pos = amount_str.find('.');
       if (dot_pos != string::npos) {
-         EOS_ASSERT((dot_pos != amount_str.size() - 1), asset_type_exception, "Missing decimal fraction after decimal point");
+         dnc_ASSERT((dot_pos != amount_str.size() - 1), asset_type_exception, "Missing decimal fraction after decimal point");
       }
 
       // Parse symbol
       string precision_digit_str;
       if (dot_pos != string::npos) {
-         precision_digit_str = eosio::chain::to_string(amount_str.size() - dot_pos - 1);
+         precision_digit_str = dncio::chain::to_string(amount_str.size() - dot_pos - 1);
       } else {
          precision_digit_str = "0";
       }
@@ -79,4 +90,4 @@ asset asset::from_string(const string& from)
    FC_CAPTURE_LOG_AND_RETHROW( (from) )
 }
 
-} }  // eosio::types
+} }  // dncio::types

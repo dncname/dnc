@@ -1,13 +1,13 @@
 /**
  *  @file
- *  @copyright defined in eos/LICENSE.txt
+ *  @copyright defined in dnc/LICENSE.txt
  */
 #pragma once
 
 #include <libintl.h>
 #include <fc/variant.hpp>
 
-namespace eosio { namespace client { namespace localize {
+namespace dncio { namespace client { namespace localize {
    #if !defined(_)
    #define _(str) str
    #endif

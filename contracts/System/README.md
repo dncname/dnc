@@ -28,38 +28,38 @@ attributes:
 - {"name":"available",   "type":"asset"}
 
 ```bash
-chain@ubuntu:~/workcode$ ./cleos get table eosio eosio accounts
+chain@ubuntu:~/workcode$ ./cldnc get table dncio dncio accounts
 {
   "rows": [{
       "name": "biosbpa",
-      "available": "1000.0000 DNC",
+      "available": "1000.0000 dnc",
     },{
       "name": "biosbpb",
-      "available": "1.0000 DNC",
+      "available": "1.0000 dnc",
     },{
       "name": "biosbpc",
-      "available": "1.0000 DNC",
+      "available": "1.0000 dnc",
     },{
       "name": "biosbpd",
-      "available": "1.0000 DNC",
+      "available": "1.0000 dnc",
     },{
       "name": "biosbpe",
-      "available": "1.0000 DNC",
+      "available": "1.0000 dnc",
     },{
       "name": "biosbpf",
-      "available": "1.0000 DNC",
+      "available": "1.0000 dnc",
     },{
       "name": "biosbpg",
-      "available": "1.0000 DNC",
+      "available": "1.0000 dnc",
     },{
       "name": "biosbph",
-      "available": "1.0000 DNC",
+      "available": "1.0000 dnc",
     },{
       "name": "biosbpi",
-      "available": "1.0000 DNC",
+      "available": "1.0000 dnc",
     },{
       "name": "biosbpj",
-      "available": "1.0000 DNC",
+      "available": "1.0000 dnc",
     }
   ],
   "more": true
@@ -79,14 +79,14 @@ attributes:
 - {"name":"unstake_height",         "type":"uint32"}
 
 ```bash
-chain@ubuntu:~/workcode$ ./cleos  get table eosio biosbpa votes
+chain@ubuntu:~/workcode$ ./cldnc  get table dncio biosbpa votes
 {
   "rows": [{
       "bpname": "biosbpa",
-      "staked": "10.0000 DNC",
+      "staked": "10.0000 dnc",
       "voteage": 0,
       "voteage_update_height": 236,
-      "unstaking": "0.0000 DNC",
+      "unstaking": "0.0000 dnc",
       "unstake_height": 236
     }
   ],
@@ -110,17 +110,17 @@ attributes:
 - {"name":"emergency",             "type":"bool"}
 
 ```bash
-chain@ubuntu:~/workcode$ ./cleos get table eosio eosio bps -k biosbpa
+chain@ubuntu:~/workcode$ ./cldnc get table dncio dncio bps -k biosbpa
 {
   "rows": [{
       "name": "biosbpa",
-      "block_signing_key": "EOS7xTPgP8HxZZSUvuoyKaw4dNGGQPHbpGYzLCYKh6evSqBNxHsWr",
+      "block_signing_key": "dnc7xTPgP8HxZZSUvuoyKaw4dNGGQPHbpGYzLCYKh6evSqBNxHsWr",
       "commission_rate": 0,
       "total_staked": 0,
-      "rewards_pool": "72.0000 DNC",
+      "rewards_pool": "72.0000 dnc",
       "total_voteage": 0,
       "voteage_update_height": 0,
-      "url": "http://dnc.io",
+      "url": "http://dncforce.io",
       "emergency": 0
     }
   ],
@@ -136,7 +136,7 @@ attributes:
 - {"name":"emergency",          "type":"bool"}
 
 ```bash
-chain@ubuntu:~/workcode$ ./cleos get table eosio eosio chainstatus
+chain@ubuntu:~/workcode$ ./cldnc get table dncio dncio chainstatus
 {
   "rows": [{
       "name": "chainstatus",
@@ -156,7 +156,7 @@ attributes:
 - {"name":"producers",   "type":"producer[]"}
 
 ```bash
-chain@ubuntu:~/workcode$ ./cleos get table eosio eosio schedules
+chain@ubuntu:~/workcode$ ./cldnc get table dncio dncio schedules
 {
   "rows": [{
       "version": 0,
@@ -249,15 +249,15 @@ void transfer(const account_name from, const account_name to, const asset quanti
 
 Parameters：
 
-- from：      DNC sender
-- to：        DNC receiver
-- quantity：  DNC quantity
+- from：      dnc sender
+- to：        dnc receiver
+- quantity：  dnc quantity
 - memo:       transaction memo
 
 ```bash
-chain@ubuntu:~/workcode$ ./cleos push action eosio transfer '{"from":"dnc","to":"biosbpa","quantity":"200.0000 DNC","memo":"my first transfer"}' -p dnc
+chain@ubuntu:~/workcode$ ./cldnc push action dncio transfer '{"from":"dncforce","to":"biosbpa","quantity":"200.0000 dnc","memo":"my first transfer"}' -p dncforce
 executed transaction: 6cd9a73c4504698120770d30b8778cc39e31433225836dad26df69fdcdb46831  160 bytes  4031 us
-#         eosio <= eosio::transfer              {"from":"dnc","to":"biosbpa","quantity":"200.0000 DNC","memo":"my first transfer"}
+#         dncio <= dncio::transfer              {"from":"dncforce","to":"biosbpa","quantity":"200.0000 dnc","memo":"my first transfer"}
 warning: transaction executed locally, but may not be confirmed by the network yet
 chain@ubuntu:~/workcode$
 ```
@@ -273,12 +273,12 @@ Parameters：
 - bpname：         block producer name
 - producer_key：   block producer public key
 - commission_rate：commission rate ，1 <= commission rate <= 10000 means 0.01%~100%
-- url: block producer additional information,e.g: "http://dnc.io"
+- url: block producer additional information,e.g: "http://dncforce.io"
 
 ```bash
-chain@ubuntu:~/workcode$ ./cleos push action eosio updatebp '{"bpname":"biosbpa","block_signing_key":"EOS7xTPgP8HxZZSUvuoyKaw4dNGGQPHbpGYzLCYKh6evSqBNxHsWr","commission_rate":"100","url":"http://dnc.io"}' -p biosbpa
+chain@ubuntu:~/workcode$ ./cldnc push action dncio updatebp '{"bpname":"biosbpa","block_signing_key":"dnc7xTPgP8HxZZSUvuoyKaw4dNGGQPHbpGYzLCYKh6evSqBNxHsWr","commission_rate":"100","url":"http://dncforce.io"}' -p biosbpa
 executed transaction: 7bcd4b80942db4c388092f4eb00b655f73cb17def6af56c5f458a8502a9ea3b2  160 bytes  4156 us
-#         eosio <= eosio::updatebp              {"bpname":"biosbpa","block_signing_key":"EOS7xTPgP8HxZZSUvuoyKaw4dNGGQPHbpGYzLCYKh6evSqBNxHsWr","com...
+#         dncio <= dncio::updatebp              {"bpname":"biosbpa","block_signing_key":"dnc7xTPgP8HxZZSUvuoyKaw4dNGGQPHbpGYzLCYKh6evSqBNxHsWr","com...
 warning: transaction executed locally, but may not be confirmed by the network yet
 chain@ubuntu:~/workcode$
 ```
@@ -296,18 +296,18 @@ Parameters：
 - stake：     vote quantity which is a integer ，becauseof fee, so need 0 <= stake.amount < staked.amount + available.amount
 
 ```bash
-chain@ubuntu:~/workcode$ ./cleos push action eosio vote '{"voter":"biosbpa","bpname":"biosbpa","stake":"10.0000 DNC"}' -p biosbpa
+chain@ubuntu:~/workcode$ ./cldnc push action dncio vote '{"voter":"biosbpa","bpname":"biosbpa","stake":"10.0000 dnc"}' -p biosbpa
 executed transaction: 4c3f306e59a988f489a9b3d17c2fed2e20a526c5fb9ea5dc12ddcd3ddeb5a647  144 bytes  4215 us
-#         eosio <= eosio::vote                  {"voter":"biosbpa","bpname":"biosbpa","stake":"10.0000 DNC"}
+#         dncio <= dncio::vote                  {"voter":"biosbpa","bpname":"biosbpa","stake":"10.0000 dnc"}
 warning: transaction executed locally, but may not be confirmed by the network yet
-chain@ubuntu:~/workcode$ ./cleos get table eosio biosbpa votes
+chain@ubuntu:~/workcode$ ./cldnc get table dncio biosbpa votes
 {
   "rows": [{
       "bpname": "biosbpa",
-      "staked": "10.0000 DNC",
+      "staked": "10.0000 dnc",
       "voteage": 0,
       "voteage_update_height": 236,
-      "unstaking": "0.0000 DNC",
+      "unstaking": "0.0000 dnc",
       "unstake_height": 236
     }
   ],
@@ -329,35 +329,35 @@ Parameters：
 - need *unstaking.amount > 0 and unstake_height + frozen_delay < current_block_num()*
 
 ```bash
-chain@ubuntu:~/workcode$ ./cleos push action eosio vote '{"voter":"biosbpa","bpname":"biosbpa","stake":"35.0000 DNC"}' -p biosbpa
+chain@ubuntu:~/workcode$ ./cldnc push action dncio vote '{"voter":"biosbpa","bpname":"biosbpa","stake":"35.0000 dnc"}' -p biosbpa
 executed transaction: f14daa3acd06e5137fefa7da9a065f8555ea60c751238b636357440d52f6317c  144 bytes  4207 us
-#         eosio <= eosio::vote                  {"voter":"biosbpa","bpname":"biosbpa","stake":"35.0000 DNC"}
+#         dncio <= dncio::vote                  {"voter":"biosbpa","bpname":"biosbpa","stake":"35.0000 dnc"}
 warning: transaction executed locally, but may not be confirmed by the network yet
-chain@ubuntu:~/workcode$ ./cleos get table eosio biosbpa votes
+chain@ubuntu:~/workcode$ ./cldnc get table dncio biosbpa votes
 {
   "rows": [{
       "bpname": "biosbpa",
-      "staked": "35.0000 DNC",
+      "staked": "35.0000 dnc",
       "voteage": 1660,
       "voteage_update_height": 310,
-      "unstaking": "15.0000 DNC",
+      "unstaking": "15.0000 dnc",
       "unstake_height": 310
     }
   ],
   "more": false
 }
-chain@ubuntu:~/workcode$ ./cleos push action eosio unfreeze '{"voter":"biosbpa","bpname":"biosbpa"}' -p biosbpa
+chain@ubuntu:~/workcode$ ./cldnc push action dncio unfreeze '{"voter":"biosbpa","bpname":"biosbpa"}' -p biosbpa
 executed transaction: c937869baf762f3f905af5b7aa501d76de4ed10ad63bde9a13e11c9cda2372bd  128 bytes  4342 us
-#         eosio <= eosio::unfreeze              {"voter":"biosbpa","bpname":"biosbpa"}
+#         dncio <= dncio::unfreeze              {"voter":"biosbpa","bpname":"biosbpa"}
 warning: transaction executed locally, but may not be confirmed by the network yet
-chain@ubuntu:~/workcode$ ./cleos get table eosio biosbpa votes
+chain@ubuntu:~/workcode$ ./cldnc get table dncio biosbpa votes
 {
   "rows": [{
       "bpname": "biosbpa",
-      "staked": "35.0000 DNC",
+      "staked": "35.0000 dnc",
       "voteage": 1660,
       "voteage_update_height": 310,
-      "unstaking": "0.0000 DNC",
+      "unstaking": "0.0000 dnc",
       "unstake_height": 310
     }
   ],
@@ -378,51 +378,51 @@ Parameters：
 - bpname：    block producer name
 
 ```bash
-chain@ubuntu:~/workcode$ ./cleos get table eosio eosio accounts -k biosbpa
+chain@ubuntu:~/workcode$ ./cldnc get table dncio dncio accounts -k biosbpa
 {
   "rows": [{
       "name": "biosbpa",
-      "available": "1155.5900 DNC"
+      "available": "1155.5900 dnc"
     }
   ],
   "more": false
 }
-chain@ubuntu:~/workcode$ ./cleos get table eosio biosbpa votes
+chain@ubuntu:~/workcode$ ./cldnc get table dncio biosbpa votes
 {
   "rows": [{
       "bpname": "biosbpa",
-      "staked": "35.0000 DNC",
+      "staked": "35.0000 dnc",
       "voteage": 1660,
       "voteage_update_height": 310,
-      "unstaking": "0.0000 DNC",
+      "unstaking": "0.0000 dnc",
       "unstake_height": 310
     }
   ],
   "more": false
 }
-chain@ubuntu:~/workcode$ ./cleos push action eosio claim '{"voter":"biosbpa","bpname":"biosbpa"}' -p biosbpa
+chain@ubuntu:~/workcode$ ./cldnc push action dncio claim '{"voter":"biosbpa","bpname":"biosbpa"}' -p biosbpa
 executed transaction: e2bdf4d630f66944d597167a0b50889cc4e5073f4d5e3597804f731ce1ad6bb6  128 bytes  5541 us
-#         eosio <= eosio::claim                 {"voter":"biosbpa","bpname":"biosbpa"}
->> --claim--reward----152.2900 DNC
+#         dncio <= dncio::claim                 {"voter":"biosbpa","bpname":"biosbpa"}
+>> --claim--reward----152.2900 dnc
 warning: transaction executed locally, but may not be confirmed by the network yet
-chain@ubuntu:~/workcode$ ./cleos get table eosio biosbpa votes
+chain@ubuntu:~/workcode$ ./cldnc get table dncio biosbpa votes
 {
   "rows": [{
       "bpname": "biosbpa",
-      "staked": "35.0000 DNC",
+      "staked": "35.0000 dnc",
       "voteage": 0,
       "voteage_update_height": 386,
-      "unstaking": "0.0000 DNC",
+      "unstaking": "0.0000 dnc",
       "unstake_height": 310
     }
   ],
   "more": false
 }
-chain@ubuntu:~/workcode$ ./cleos get table eosio eosio accounts -k biosbpa
+chain@ubuntu:~/workcode$ ./cldnc get table dncio dncio accounts -k biosbpa
 {
   "rows": [{
       "name": "biosbpa",
-      "available": "1307.9600 DNC"
+      "available": "1307.9600 dnc"
     }
   ],
   "more": false
@@ -444,9 +444,9 @@ Parameters：
 transfer/updatebp/vote/claim/unfreeze/newaccount actions, otherwise, nothing to change.
 
 ```bash
-chain@ubuntu:~/workcode$ ./cleos   push action eosio setemergency '{"bpname":"biosbpa","emergency":true}' -p biosbpa
+chain@ubuntu:~/workcode$ ./cldnc   push action dncio setemergency '{"bpname":"biosbpa","emergency":true}' -p biosbpa
 executed transaction: 5d4bbcc4e04e0ed1107d1a75b564f3b4d612a30e531853266c79ebf7dd7bd756  120 bytes  14806 us
-#         eosio <= eosio::setemergency          {"bpname":"biosbpa","emergency":1}
+#         dncio <= dncio::setemergency          {"bpname":"biosbpa","emergency":1}
 warning: transaction executed locally, but may not be confirmed by the network yet
 chain@ubuntu:~/workcode$
 ```

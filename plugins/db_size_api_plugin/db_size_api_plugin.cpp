@@ -1,16 +1,16 @@
 /**
  *  @file
- *  @copyright defined in eos/LICENSE.txt
+ *  @copyright defined in dnc/LICENSE.txt
  */
 #include <fc/variant.hpp>
 #include <fc/io/json.hpp>
-#include <eosio/db_size_api_plugin/db_size_api_plugin.hpp>
+#include <dncio/db_size_api_plugin/db_size_api_plugin.hpp>
 
-namespace eosio {
+namespace dncio {
 
 static appbase::abstract_plugin& _db_size_api_plugin = app().register_plugin<db_size_api_plugin>();
 
-using namespace eosio;
+using namespace dncio;
 
 #define CALL(api_name, api_handle, call_name, INVOKE, http_response_code) \
 {std::string("/v1/" #api_name "/" #call_name), \
@@ -36,7 +36,7 @@ void db_size_api_plugin::plugin_startup() {
 }
 
 db_size_stats db_size_api_plugin::get() {
-   const chainbase::database& db = app().get_plugin<chain_plugin>().chain().db();
+   chainbase::database& db = app().get_plugin<chain_plugin>().chain().db();
    db_size_stats ret;
 
    ret.free_bytes = db.get_segment_manager()->get_free_memory();

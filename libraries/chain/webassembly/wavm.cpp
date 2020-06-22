@@ -1,8 +1,8 @@
-#include <eosio/chain/webassembly/wavm.hpp>
-#include <eosio/chain/wasm_eosio_constraints.hpp>
-#include <eosio/chain/wasm_eosio_injection.hpp>
-#include <eosio/chain/apply_context.hpp>
-#include <eosio/chain/exceptions.hpp>
+#include <dncio/chain/webassembly/wavm.hpp>
+#include <dncio/chain/wasm_dncio_constraints.hpp>
+#include <dncio/chain/wasm_dncio_injection.hpp>
+#include <dncio/chain/apply_context.hpp>
+#include <dncio/chain/exceptions.hpp>
 
 #include "IR/Module.h"
 #include "Platform/Platform.h"
@@ -17,7 +17,7 @@
 using namespace IR;
 using namespace Runtime;
 
-namespace eosio { namespace chain { namespace webassembly { namespace wavm {
+namespace dncio { namespace chain { namespace webassembly { namespace wavm {
 
 running_instance_context the_running_instance_context;
 
@@ -44,7 +44,7 @@ class wavm_instantiated_module : public wasm_instantiated_module_interface {
             if( !call )
                return;
 
-            EOS_ASSERT( getFunctionType(call)->parameters.size() == args.size(), wasm_exception, "" );
+            FC_ASSERT( getFunctionType(call)->parameters.size() == args.size() );
 
             //The memory instance is reused across all wavm_instantiated_modules, but for wasm instances
             // that didn't declare "memory", getDefaultMemory() won't see it
@@ -114,25 +114,17 @@ std::unique_ptr<wasm_instantiated_module_interface> wavm_runtime::instantiate_mo
       Serialization::MemoryInputStream stream((const U8*)code_bytes, code_size);
       WASM::serialize(stream, *module);
    } catch(const Serialization::FatalSerializationException& e) {
-      EOS_ASSERT(false, wasm_serialization_error, e.message.c_str());
+      dnc_ASSERT(false, wasm_serialization_error, e.message.c_str());
    } catch(const IR::ValidationException& e) {
-      EOS_ASSERT(false, wasm_serialization_error, e.message.c_str());
+      dnc_ASSERT(false, wasm_serialization_error, e.message.c_str());
    }
 
-   eosio::chain::webassembly::common::root_resolver resolver;
+   dncio::chain::webassembly::common::root_resolver resolver;
    LinkResult link_result = linkModule(*module, resolver);
    ModuleInstance *instance = instantiateModule(*module, std::move(link_result.resolvedImports));
-   EOS_ASSERT(instance != nullptr, wasm_exception, "Fail to Instantiate WAVM Module");
+   FC_ASSERT(instance != nullptr);
 
    return std::make_unique<wavm_instantiated_module>(instance, std::move(module), initial_memory);
-}
-
-void wavm_runtime::immediately_exit_currently_running_module() {
-#ifdef _WIN32
-   throw wasm_exit();
-#else
-   Platform::immediately_exit();
-#endif
 }
 
 }}}}

@@ -1,11 +1,11 @@
 /**
  * @file
- * @copyright defined in eos/LICENSE.txt
+ * @copyright defined in dnc/LICENSE.txt
  */
 
-#include <eosiolib/eosio.hpp>
-#include <eosiolib/crypto.h>
-#include <eosiolib/print.h>
+#include <dnciolib/dncio.hpp>
+#include <dnciolib/crypto.h>
+#include <dnciolib/print.h>
 #include "test_api.hpp"
 
 #include <vector>
@@ -15,7 +15,7 @@ void test_checktime::checktime_pass() {
    for ( int i = 0; i < 10000; i++ )
       p += i;
 
-   eosio::print(p);
+   dncio::print(p);
 }
 
 void test_checktime::checktime_failure() {
@@ -25,7 +25,7 @@ void test_checktime::checktime_failure() {
          p += i+j;
 
 
-   eosio::print(p);
+   dncio::print(p);
 }
 
 constexpr size_t size = 20000000;

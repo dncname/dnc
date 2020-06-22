@@ -1,28 +1,28 @@
 /**
  *  @file
- *  @copyright defined in eos/LICENSE.txt
+ *  @copyright defined in dnc/LICENSE.txt
  */
-#include <eosio/producer_api_plugin/producer_api_plugin.hpp>
-#include <eosio/chain/exceptions.hpp>
+#include <dncio/producer_api_plugin/producer_api_plugin.hpp>
+#include <dncio/chain/exceptions.hpp>
 
 #include <fc/variant.hpp>
 #include <fc/io/json.hpp>
 
 #include <chrono>
 
-namespace eosio { namespace detail {
+namespace dncio { namespace detail {
   struct producer_api_plugin_response {
      std::string result;
   };
 }}
 
-FC_REFLECT(eosio::detail::producer_api_plugin_response, (result));
+FC_REFLECT(dncio::detail::producer_api_plugin_response, (result));
 
-namespace eosio {
+namespace dncio {
 
 static appbase::abstract_plugin& _producer_api_plugin = app().register_plugin<producer_api_plugin>();
 
-using namespace eosio;
+using namespace dncio;
 
 #define CALL(api_name, api_handle, call_name, INVOKE, http_response_code) \
 {std::string("/v1/" #api_name "/" #call_name), \
@@ -48,16 +48,16 @@ using namespace eosio;
 
 #define INVOKE_V_R(api_handle, call_name, in_param) \
      api_handle.call_name(fc::json::from_string(body).as<in_param>()); \
-     eosio::detail::producer_api_plugin_response result{"ok"};
+     dncio::detail::producer_api_plugin_response result{"ok"};
 
 #define INVOKE_V_R_R(api_handle, call_name, in_param0, in_param1) \
      const auto& vs = fc::json::json::from_string(body).as<fc::variants>(); \
      api_handle.call_name(vs.at(0).as<in_param0>(), vs.at(1).as<in_param1>()); \
-     eosio::detail::producer_api_plugin_response result{"ok"};
+     dncio::detail::producer_api_plugin_response result{"ok"};
 
 #define INVOKE_V_V(api_handle, call_name) \
      api_handle.call_name(); \
-     eosio::detail::producer_api_plugin_response result{"ok"};
+     dncio::detail::producer_api_plugin_response result{"ok"};
 
 
 void producer_api_plugin::plugin_startup() {
@@ -76,38 +76,10 @@ void producer_api_plugin::plugin_startup() {
             INVOKE_R_V(producer, get_runtime_options), 201),
        CALL(producer, producer, update_runtime_options,
             INVOKE_V_R(producer, update_runtime_options, producer_plugin::runtime_options), 201),
-       CALL(producer, producer, add_greylist_accounts,
-            INVOKE_V_R(producer, add_greylist_accounts, producer_plugin::greylist_params), 201),
-       CALL(producer, producer, remove_greylist_accounts,
-            INVOKE_V_R(producer, remove_greylist_accounts, producer_plugin::greylist_params), 201), 
-       CALL(producer, producer, get_greylist,
-            INVOKE_R_V(producer, get_greylist), 201),                 
-       CALL(producer, producer, get_whitelist_blacklist,
-            INVOKE_R_V(producer, get_whitelist_blacklist), 201),
-       CALL(producer, producer, set_whitelist_blacklist, 
-            INVOKE_V_R(producer, set_whitelist_blacklist, producer_plugin::whitelist_blacklist), 201),   
-       CALL(producer, producer, get_integrity_hash,
-            INVOKE_R_V(producer, get_integrity_hash), 201),
-       CALL(producer, producer, create_snapshot,
-            INVOKE_R_V(producer, create_snapshot), 201),
    });
 }
 
 void producer_api_plugin::plugin_initialize(const variables_map& options) {
-   try {
-      const auto& _http_plugin = app().get_plugin<http_plugin>();
-      if( !_http_plugin.is_on_loopback()) {
-         wlog( "\n"
-               "**********SECURITY WARNING**********\n"
-               "*                                  *\n"
-               "* --        Producer API        -- *\n"
-               "* - EXPOSED to the LOCAL NETWORK - *\n"
-               "* - USE ONLY ON SECURE NETWORKS! - *\n"
-               "*                                  *\n"
-               "************************************\n" );
-
-      }
-   } FC_LOG_AND_RETHROW()
 }
 
 

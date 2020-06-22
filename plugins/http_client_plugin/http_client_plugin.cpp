@@ -1,13 +1,12 @@
 /**
  *  @file
- *  @copyright defined in eos/LICENSE.txt
+ *  @copyright defined in dnc/LICENSE.txt
  */
-#include <eosio/http_client_plugin/http_client_plugin.hpp>
-#include <eosio/chain/exceptions.hpp>
+#include <dncio/http_client_plugin/http_client_plugin.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <fstream>
 
-namespace eosio {
+namespace dncio {
 
 http_client_plugin::http_client_plugin():my(new http_client()){}
 http_client_plugin::~http_client_plugin(){}
@@ -23,35 +22,31 @@ void http_client_plugin::set_program_options(options_description&, options_descr
 }
 
 void http_client_plugin::plugin_initialize(const variables_map& options) {
-   try {
-      if( options.count( "https-client-root-cert" )) {
-         const std::vector<std::string> root_pems = options["https-client-root-cert"].as<std::vector<std::string>>();
-         for( const auto& root_pem : root_pems ) {
-            std::string pem_str = root_pem;
-            if( !boost::algorithm::starts_with( pem_str, "-----BEGIN CERTIFICATE-----\n" )) {
-               try {
-                  auto infile = std::ifstream( pem_str );
-                  std::stringstream sstr;
-                  sstr << infile.rdbuf();
-                  pem_str = sstr.str();
-                  EOS_ASSERT( boost::algorithm::starts_with( pem_str, "-----BEGIN CERTIFICATE-----\n" ),
-                              chain::invalid_http_client_root_cert,
-                             "File does not appear to be a PEM encoded certificate" );
-               } catch ( const fc::exception& e ) {
-                  elog( "Failed to read PEM ${f} : ${e}", ("f", root_pem)( "e", e.to_detail_string()));
-               }
-            }
-
+   if ( options.count("https-client-root-cert") ) {
+      const std::vector<std::string> root_pems = options["https-client-root-cert"].as<std::vector<std::string>>();
+      for (const auto& root_pem : root_pems) {
+         std::string pem_str = root_pem;
+         if (!boost::algorithm::starts_with(pem_str, "-----BEGIN CERTIFICATE-----\n")) {
             try {
-               my->add_cert( pem_str );
-            } catch ( const fc::exception& e ) {
-               elog( "Failed to read PEM : ${e} \n${pem}\n", ("pem", pem_str)( "e", e.to_detail_string()));
+               auto infile = std::ifstream(pem_str);
+               std::stringstream sstr;
+               sstr << infile.rdbuf();
+               pem_str = sstr.str();
+               FC_ASSERT(boost::algorithm::starts_with(pem_str, "-----BEGIN CERTIFICATE-----\n"), "File does not appear to be a PEM encoded certificate");
+            } catch (const fc::exception& e) {
+               elog("Failed to read PEM ${f} : ${e}", ("f", root_pem)("e",e.to_detail_string()));
             }
          }
-      }
 
-      my->set_verify_peers( options.at( "https-client-validate-peers" ).as<bool>());
-   } FC_LOG_AND_RETHROW()
+         try {
+            my->add_cert(pem_str);
+         } catch (const fc::exception& e) {
+            elog("Failed to read PEM : ${e} \n${pem}\n", ("pem", pem_str)("e",e.to_detail_string()));
+         }
+      }
+   }
+
+   my->set_verify_peers(options.at("https-client-validate-peers").as<bool>());
 }
 
 void http_client_plugin::plugin_startup() {

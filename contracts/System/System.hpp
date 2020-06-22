@@ -1,31 +1,31 @@
 
 #pragma once
 
-#include <eosiolib/dispatcher.hpp>
-#include <eosiolib/asset.hpp>
-#include <eosiolib/contract.hpp>
-#include <eosiolib/multi_index.hpp>
-#include <eosiolib/producer_schedule.hpp>
-#include <eosiolib/time.hpp>
-#include <eosiolib/chain.h>
+#include <dnciolib/dispatcher.hpp>
+#include <dnciolib/asset.hpp>
+#include <dnciolib/contract.hpp>
+#include <dnciolib/multi_index.hpp>
+#include <dnciolib/producer_schedule.hpp>
+#include <dnciolib/time.hpp>
+#include <dnciolib/chain.h>
 
-namespace eosiosystem {
+namespace dnciosystem {
 
-using eosio::asset;
-using eosio::print;
-using eosio::bytes;
-using eosio::block_timestamp;
+using dncio::asset;
+using dncio::print;
+using dncio::bytes;
+using dncio::block_timestamp;
 using std::string;
 
 
-static constexpr uint64_t SYMBOL = S(4, DNC);
+static constexpr uint64_t SYMBOL = S(4, dnc);
 static constexpr uint32_t FROZEN_DELAY = 3*24*60*20; //3*24*60*20*3s;
 static constexpr int NUM_OF_TOP_BPS = 23;
-static constexpr int BLOCK_REWARDS_BP = 9*10000; //9.0000 DNC
-static constexpr int BLOCK_REWARDS_B1 = 1*10000; //1.0000 DNC
+static constexpr int BLOCK_REWARDS_BP = 9*10000; //9.0000 dnc
+static constexpr int BLOCK_REWARDS_B1 = 1*10000; //1.0000 dnc
 static constexpr uint32_t UPDATE_CYCLE = 100; //every 100 blocks update
 
-class system_contract : private eosio::contract {
+class system_contract : private dncio::contract {
 public:
   system_contract( account_name self ):contract( self ){}
 
@@ -36,7 +36,7 @@ private:
     asset           available = asset(0, SYMBOL);
 
     uint64_t primary_key()const { return name; }
-    EOSLIB_SERIALIZE( account_info, (name) (available) )
+    dncLIB_SERIALIZE( account_info, (name) (available) )
   };
 
   struct vote_info {
@@ -48,7 +48,7 @@ private:
     uint32_t        unstake_height = current_block_num();
 
     uint64_t        primary_key() const { return bpname; }
-    EOSLIB_SERIALIZE( vote_info, (bpname) (staked) (voteage) (voteage_update_height) (unstaking) (unstake_height) )
+    dncLIB_SERIALIZE( vote_info, (bpname) (staked) (voteage) (voteage_update_height) (unstaking) (unstake_height) )
   };
 
   struct bp_info {
@@ -65,7 +65,7 @@ private:
     uint64_t primary_key() const { return name; }
     void update (public_key key, uint32_t rate, std::string u) { block_signing_key = key; commission_rate = rate; url = u;}
 
-    EOSLIB_SERIALIZE( bp_info, (name) (block_signing_key) (commission_rate) (total_staked)
+    dncLIB_SERIALIZE( bp_info, (name) (block_signing_key) (commission_rate) (total_staked)
     (rewards_pool) (total_voteage) (voteage_update_height) (url) (emergency) )
   };
 
@@ -80,7 +80,7 @@ private:
     producer        producers[NUM_OF_TOP_BPS];
 
     uint64_t primary_key() const { return version; }
-    EOSLIB_SERIALIZE( schedule_info, (version) (block_height) (producers) )
+    dncLIB_SERIALIZE( schedule_info, (version) (block_height) (producers) )
   };
 
   struct chain_status {
@@ -88,14 +88,14 @@ private:
     bool            emergency = false;
 
     uint64_t primary_key() const { return name; }
-    EOSLIB_SERIALIZE( chain_status, (name) (emergency) )
+    dncLIB_SERIALIZE( chain_status, (name) (emergency) )
   };
 
-  typedef eosio::multi_index<N(accounts), account_info> accounts_table;
-  typedef eosio::multi_index<N(votes), vote_info> votes_table;
-  typedef eosio::multi_index<N(bps), bp_info> bps_table;
-  typedef eosio::multi_index<N(schedules), schedule_info> schedules_table;
-  typedef eosio::multi_index<N(chainstatus), chain_status> cstatus_table;
+  typedef dncio::multi_index<N(accounts), account_info> accounts_table;
+  typedef dncio::multi_index<N(votes), vote_info> votes_table;
+  typedef dncio::multi_index<N(bps), bp_info> bps_table;
+  typedef dncio::multi_index<N(schedules), schedule_info> schedules_table;
+  typedef dncio::multi_index<N(chainstatus), chain_status> cstatus_table;
 
   void update_elected_bps();
 
@@ -128,5 +128,5 @@ public:
 
 };
 
-  EOSIO_ABI(system_contract, (transfer) (updatebp) (vote) (unfreeze) (claim) (onblock) (onfee) (setemergency) )
-} /// eosiosystem
+  dncIO_ABI(system_contract, (transfer) (updatebp) (vote) (unfreeze) (claim) (onblock) (onfee) (setemergency) )
+} /// dnciosystem

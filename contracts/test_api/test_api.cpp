@@ -1,9 +1,9 @@
 /**
  *  @file
- *  @copyright defined in eos/LICENSE.txt
+ *  @copyright defined in dnc/LICENSE.txt
  */
-#include <eosiolib/eosio.hpp>
-#include <eosiolib/transaction.hpp>
+#include <dnciolib/dncio.hpp>
+#include <dnciolib/transaction.hpp>
 
 #include "test_api.hpp"
 #include "test_action.cpp"
@@ -22,9 +22,9 @@ account_name global_receiver;
 
 extern "C" {
    void apply( uint64_t receiver, uint64_t code, uint64_t action ) {
-      if( code == N(eosio) && action == N(onerror) ) {
-         auto error = eosio::onerror::from_current_action();
-         eosio::print("onerror called\n");
+      if( code == N(dncio) && action == N(onerror) ) {
+         auto error = dncio::onerror::from_current_action();
+         dncio::print("onerror called\n");
          auto error_trx = error.unpack_sent_trx();
          auto error_action = error_trx.actions.at(0).name;
 
@@ -71,7 +71,6 @@ extern "C" {
       WASM_TEST_HANDLER(test_action, read_action_to_0);
       WASM_TEST_HANDLER(test_action, read_action_to_64k);
       WASM_TEST_HANDLER_EX(test_action, require_notice);
-      WASM_TEST_HANDLER_EX(test_action, require_notice_tests);
       WASM_TEST_HANDLER(test_action, require_auth);
       WASM_TEST_HANDLER(test_action, assert_false);
       WASM_TEST_HANDLER(test_action, assert_true);
@@ -80,7 +79,6 @@ extern "C" {
       WASM_TEST_HANDLER_EX(test_action, test_current_receiver);
       WASM_TEST_HANDLER(test_action, test_publication_time);
       WASM_TEST_HANDLER(test_action, test_assert_code);
-      WASM_TEST_HANDLER_EX(test_action, test_ram_billing_in_notify);
 
       // test named actions
       // We enforce action name matches action data type name, so name mangling will not work for these tests.
@@ -149,7 +147,6 @@ extern "C" {
       WASM_TEST_HANDLER(test_transaction, context_free_api);
       WASM_TEST_HANDLER(test_transaction, new_feature);
       WASM_TEST_HANDLER(test_transaction, active_new_feature);
-      WASM_TEST_HANDLER_EX(test_transaction, repeat_deferred_transaction);
 
       //test chain
       WASM_TEST_HANDLER(test_chain, test_activeprods);
@@ -183,7 +180,7 @@ extern "C" {
       WASM_TEST_HANDLER_EX(test_permission, test_account_creation_time);
 
       //unhandled test call
-      eosio_assert(false, "Unknown Test");
+      dncio_assert(false, "Unknown Test");
 
    }
 }

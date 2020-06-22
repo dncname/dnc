@@ -1,27 +1,27 @@
 /**
  *  @file
- *  @copyright defined in eos/LICENSE.txt
+ *  @copyright defined in dnc/LICENSE.txt
  */
-#include <eosio/net_api_plugin/net_api_plugin.hpp>
-#include <eosio/chain/exceptions.hpp>
-#include <eosio/chain/transaction.hpp>
+#include <dncio/net_api_plugin/net_api_plugin.hpp>
+#include <dncio/chain/exceptions.hpp>
+#include <dncio/chain/transaction.hpp>
 
 #include <fc/variant.hpp>
 #include <fc/io/json.hpp>
 
 #include <chrono>
 
-namespace eosio { namespace detail {
+namespace dncio { namespace detail {
   struct net_api_plugin_empty {};
 }}
 
-FC_REFLECT(eosio::detail::net_api_plugin_empty, );
+FC_REFLECT(dncio::detail::net_api_plugin_empty, );
 
-namespace eosio {
+namespace dncio {
 
 static appbase::abstract_plugin& _net_api_plugin = app().register_plugin<net_api_plugin>();
 
-using namespace eosio;
+using namespace dncio;
 
 #define CALL(api_name, api_handle, call_name, INVOKE, http_response_code) \
 {std::string("/v1/" #api_name "/" #call_name), \
@@ -47,16 +47,16 @@ using namespace eosio;
 
 #define INVOKE_V_R(api_handle, call_name, in_param) \
      api_handle.call_name(fc::json::from_string(body).as<in_param>()); \
-     eosio::detail::net_api_plugin_empty result;
+     dncio::detail::net_api_plugin_empty result;
 
 #define INVOKE_V_R_R(api_handle, call_name, in_param0, in_param1) \
      const auto& vs = fc::json::json::from_string(body).as<fc::variants>(); \
      api_handle.call_name(vs.at(0).as<in_param0>(), vs.at(1).as<in_param1>()); \
-     eosio::detail::net_api_plugin_empty result;
+     dncio::detail::net_api_plugin_empty result;
 
 #define INVOKE_V_V(api_handle, call_name) \
      api_handle.call_name(); \
-     eosio::detail::net_api_plugin_empty result;
+     dncio::detail::net_api_plugin_empty result;
 
 
 void net_api_plugin::plugin_startup() {
@@ -83,19 +83,20 @@ void net_api_plugin::plugin_startup() {
 }
 
 void net_api_plugin::plugin_initialize(const variables_map& options) {
-   try {
-      const auto& _http_plugin = app().get_plugin<http_plugin>();
-      if( !_http_plugin.is_on_loopback()) {
-         wlog( "\n"
-               "**********SECURITY WARNING**********\n"
-               "*                                  *\n"
-               "* --         Net API            -- *\n"
-               "* - EXPOSED to the LOCAL NETWORK - *\n"
-               "* - USE ONLY ON SECURE NETWORKS! - *\n"
-               "*                                  *\n"
-               "************************************\n" );
+   if (options.count("http-server-address")) {
+      const auto& lipstr = options.at("http-server-address").as<string>();
+      const auto& host = lipstr.substr(0, lipstr.find(':'));
+      if (host != "localhost" && host != "127.0.0.1") {
+         wlog("\n"
+              "*************************************\n"
+              "*                                   *\n"
+              "*  --  Net API NOT on localhost  -- *\n"
+              "*                                   *\n"
+              "*   this may be abused if exposed   *\n"
+              "*                                   *\n"
+              "*************************************\n");
       }
-   } FC_LOG_AND_RETHROW()
+   }
 }
 
 

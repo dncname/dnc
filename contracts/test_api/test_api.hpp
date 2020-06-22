@@ -1,20 +1,20 @@
 /**
  *  @file
- *  @copyright defined in eos/LICENSE.txt
+ *  @copyright defined in dnc/LICENSE.txt
  */
 #pragma once
 #include "test_api_common.hpp"
 #include <string>
 
 
-namespace eosio {
+namespace dncio {
    class transaction;
 }
 
 
-//#include <eosiolib/transaction.hpp>
+//#include <dnciolib/transaction.hpp>
 
-// NOTE: including eosiolib/transaction.hpp here causes !"unresolvable": env._ZNKSt3__120__vector_base_commonILb1EE20__throw_length_errorEv
+// NOTE: including dnciolib/transaction.hpp here causes !"unresolvable": env._ZNKSt3__120__vector_base_commonILb1EE20__throw_length_errorEv
 //       errors in api_tests/memory_tests
 
 #define WASM_TEST_HANDLER(CLASS, METHOD) \
@@ -57,13 +57,13 @@ struct test_print {
 };
 
 struct test_action {
+
   static void read_action_normal();
   static void read_action_to_0();
   static void read_action_to_64k();
   static void test_dummy_action();
   static void test_cf_action();
   static void require_notice(uint64_t receiver, uint64_t code, uint64_t action);
-  static void require_notice_tests(uint64_t receiver, uint64_t code, uint64_t action);
   static void require_auth();
   static void assert_false();
   static void assert_true();
@@ -73,7 +73,6 @@ struct test_action {
   static void test_current_receiver(uint64_t receiver, uint64_t code, uint64_t action);
   static void test_publication_time();
   static void test_assert_code();
-  static void test_ram_billing_in_notify(uint64_t receiver, uint64_t code, uint64_t action);
 };
 
 struct test_db {
@@ -95,13 +94,10 @@ struct test_db {
 };
 
 struct test_multi_index {
+
    static void idx64_general(uint64_t receiver, uint64_t code, uint64_t action);
    static void idx64_store_only(uint64_t receiver, uint64_t code, uint64_t action);
    static void idx64_check_without_storing(uint64_t receiver, uint64_t code, uint64_t action);
-   static void idx64_require_find_fail(uint64_t receiver, uint64_t code, uint64_t action);
-   static void idx64_require_find_fail_with_msg(uint64_t receiver, uint64_t code, uint64_t action);
-   static void idx64_require_find_sk_fail(uint64_t receiver, uint64_t code, uint64_t action);
-   static void idx64_require_find_sk_fail_with_msg(uint64_t receiver, uint64_t code, uint64_t action);
    static void idx128_general(uint64_t receiver, uint64_t code, uint64_t action);
    static void idx128_store_only(uint64_t receiver, uint64_t code, uint64_t action);
    static void idx128_check_without_storing(uint64_t receiver, uint64_t code, uint64_t action);
@@ -127,6 +123,7 @@ struct test_multi_index {
    static void idx64_run_out_of_avl_pk(uint64_t receiver, uint64_t code, uint64_t action);
    static void idx64_sk_cache_pk_lookup(uint64_t receiver, uint64_t code, uint64_t action);
    static void idx64_pk_cache_sk_lookup(uint64_t receiver, uint64_t code, uint64_t action);
+
 };
 
 struct test_crypto {
@@ -166,7 +163,7 @@ struct test_transaction {
   static void send_transaction(uint64_t receiver, uint64_t code, uint64_t action);
   static void send_transaction_empty(uint64_t receiver, uint64_t code, uint64_t action);
   static void send_transaction_trigger_error_handler(uint64_t receiver, uint64_t code, uint64_t action);
-  static void assert_false_error_handler(const eosio::transaction&);
+  static void assert_false_error_handler(const dncio::transaction&);
   static void send_transaction_max();
   static void send_transaction_large(uint64_t receiver, uint64_t code, uint64_t action);
   static void send_action_sender(uint64_t receiver, uint64_t code, uint64_t action);
@@ -182,7 +179,6 @@ struct test_transaction {
   static void context_free_api();
   static void new_feature();
   static void active_new_feature();
-  static void repeat_deferred_transaction(uint64_t receiver, uint64_t code, uint64_t action);
 };
 
 struct test_chain {

@@ -1,63 +1,17 @@
 #include <boost/test/unit_test.hpp>
 #include <boost/algorithm/string/predicate.hpp>
-#include <eosio/testing/tester.hpp>
-#include <eosio/chain/wast_to_wasm.hpp>
-#include <eosio/chain/eosio_contract.hpp>
+#include <dncio/testing/tester.hpp>
+#include <dncio/chain/wast_to_wasm.hpp>
+#include <dncio/chain/dncio_contract.hpp>
 
-#include <eosio.bios/eosio.bios.wast.hpp>
-#include <eosio.bios/eosio.bios.abi.hpp>
-#include <fstream>
+#include <dncio.bios/dncio.bios.wast.hpp>
+#include <dncio.bios/dncio.bios.abi.hpp>
 
-eosio::chain::asset core_from_string(const std::string& s) {
-  return eosio::chain::asset::from_string(s + " " CORE_SYMBOL_NAME);
+dncio::chain::asset core_from_string(const std::string& s) {
+  return dncio::chain::asset::from_string(s + " " CORE_SYMBOL_NAME);
 }
 
-namespace eosio { namespace testing {
-   std::string read_wast( const char* fn ) {
-      std::ifstream wast_file(fn);
-      FC_ASSERT( wast_file.is_open(), "wast file cannot be found" );
-      wast_file.seekg(0, std::ios::end);
-      std::vector<char> wast;
-      int len = wast_file.tellg();
-      FC_ASSERT( len >= 0, "wast file length is -1" );
-      wast.resize(len+1);
-      wast_file.seekg(0, std::ios::beg);
-      wast_file.read(wast.data(), wast.size());
-      wast[wast.size()-1] = '\0';
-      wast_file.close();
-      return {wast.data()};
-   }
-
-   std::vector<uint8_t> read_wasm( const char* fn ) {
-      std::ifstream wasm_file(fn, std::ios::binary);
-      FC_ASSERT( wasm_file.is_open(), "wasm file cannot be found" );
-      wasm_file.seekg(0, std::ios::end);
-      std::vector<uint8_t> wasm;
-      int len = wasm_file.tellg();
-      FC_ASSERT( len >= 0, "wasm file length is -1" );
-      wasm.resize(len);
-      wasm_file.seekg(0, std::ios::beg);
-      wasm_file.read((char*)wasm.data(), wasm.size());
-      wasm_file.close();
-      return wasm;
-   }
-
-   std::vector<char> read_abi( const char* fn ) {
-      std::ifstream abi_file(fn);
-      FC_ASSERT( abi_file.is_open(), "abi file cannot be found" );
-      abi_file.seekg(0, std::ios::end);
-      std::vector<char> abi;
-      int len = abi_file.tellg();
-      FC_ASSERT( len >= 0, "abi file length is -1" );
-      abi.resize(len+1);
-      abi_file.seekg(0, std::ios::beg);
-      abi_file.read(abi.data(), abi.size());
-      abi[abi.size()-1] = '\0';
-      abi_file.close();
-      return abi;
-   }
-
-   const fc::microseconds base_tester::abi_serializer_max_time{1000*1000}; // 1s for slow test machines
+namespace dncio { namespace testing {
 
    bool expect_assert_message(const fc::exception& ex, string expected) {
       BOOST_TEST_MESSAGE("LOG : " << "expected: " << expected << ", actual: " << ex.get_log().at(0).get_message());
@@ -82,145 +36,35 @@ namespace eosio { namespace testing {
      return control->head_block_id() == other.control->head_block_id();
    }
 
-   void base_tester::init(bool push_genesis, db_read_mode read_mode) {
+   void base_tester::init(bool push_genesis) {
       cfg.blocks_dir      = tempdir.path() / config::default_blocks_dir_name;
       cfg.state_dir  = tempdir.path() / config::default_state_dir_name;
       cfg.state_size = 1024*1024*8;
-      cfg.state_guard_size = 0;
       cfg.reversible_cache_size = 1024*1024*8;
-      cfg.reversible_guard_size = 0;
       cfg.contracts_console = true;
-      cfg.read_mode = read_mode;
 
-   	  const char* genesis_string = R"=====(
-{
-  "initial_timestamp": "2018-05-28T12:00:00.000",
-  "initial_key": "EOS1111111111111111111111111111111114T1Anm",
-  "code": "",
-  "abi": "",
-  "token_code": "",
-  "token_abi": "",
-  "initial_configuration": {
-    "max_block_net_usage": 1048576,
-    "target_block_net_usage_pct": 1000,
-    "max_transaction_net_usage": 524288,
-    "base_per_transaction_net_usage": 12,
-    "net_usage_leeway": 500,
-    "context_free_discount_net_usage_num": 20,
-    "context_free_discount_net_usage_den": 100,
-    "max_block_cpu_usage": 1000000,
-    "target_block_cpu_usage_pct": 1000,
-    "max_transaction_cpu_usage": 750000,
-    "min_transaction_cpu_usage": 100,
-    "max_transaction_lifetime": 3600,
-    "deferred_trx_expiration_window": 600,
-    "max_transaction_delay": 3888000,
-    "max_inline_action_size": 4096,
-    "max_inline_action_depth": 4,
-    "max_authority_depth": 6
-  },
-  "initial_account_list": [{
-      "key": "EOS842ZDGXdExMNiMhLmevmKA3vapRWWfWsskXzRripTsAG8hUk2R",
-      "asset": "1000000000.0000 DNC",
-      "name": "dnc"
-    },{
-      "key": "EOS842ZDGXdExMNiMhLmevmKA3vapRWWfWsskXzRripTsAG8hUk2R",
-      "asset": "1000000.0000 DNC",
-      "name": "b1"
-    },{
-      "key": "EOS842ZDGXdExMNiMhLmevmKA3vapRWWfWsskXzRripTsAG8hUk2R",
-      "asset": "1000000.0000 DNC",
-      "name": "force.test"
-    }
-  ],
-  "initial_producer_list": [{
-      "name": "dnc",
-      "bpkey": "EOS7pquS6bwErdwb4dpcGLFQg8ovaovXicQsuvZYogT198Jy8CjLA",
-      "commission_rate": 10,
-      "url": ""
-    }
-  ]
-}
-)=====";
-
-	  cfg.genesis = fc::json::from_string(genesis_string).as<genesis_state>();
-	  cfg.genesis.initial_account_list[0].key = get_public_key( N(dnc), "active" );
-	  cfg.genesis.initial_account_list[2].key = get_public_key( N(force.test), "active" );
-	  cfg.genesis.initial_producer_list[0].bpkey = get_public_key( N(dnc), "active" );
-
+      cfg.genesis.initial_timestamp = fc::time_point::from_iso_string("2020-01-01T00:00:00.000");
       cfg.genesis.initial_key = get_public_key( config::system_account_name, "active" );
 
-
-      //cfg.genesis.initial_timestamp = fc::time_point::from_iso_string("2020-01-01T00:00:00.000");
-      //cfg.genesis.initial_key = get_public_key( config::system_account_name, "active" );
-
       for(int i = 0; i < boost::unit_test::framework::master_test_suite().argc; ++i) {
-         if(boost::unit_test::framework::master_test_suite().argv[i] == std::string("--wavm"))
+         if(boost::unit_test::framework::master_test_suite().argv[i] == std::string("--binaryen"))
+            cfg.wasm_runtime = chain::wasm_interface::vm_type::binaryen;
+         else if(boost::unit_test::framework::master_test_suite().argv[i] == std::string("--wavm"))
             cfg.wasm_runtime = chain::wasm_interface::vm_type::wavm;
-         else if(boost::unit_test::framework::master_test_suite().argv[i] == std::string("--wabt"))
-            cfg.wasm_runtime = chain::wasm_interface::vm_type::wabt;
+         else
+            cfg.wasm_runtime = chain::wasm_interface::vm_type::binaryen;
       }
 
-// load system contract
-     	{
-#include <System/System.wast.hpp>
-#include <System/System.abi.hpp>
-#include <System01/System01.wast.hpp>
-#include <System01/System01.abi.hpp>
-#include <eosio.token/eosio.token.wast.hpp>
-#include <eosio.token/eosio.token.abi.hpp>
-#include <eosio.msig/eosio.msig.wast.hpp>
-#include <eosio.msig/eosio.msig.abi.hpp>
-#include <eosio.bios/eosio.bios.wast.hpp>
-#include <eosio.bios/eosio.bios.abi.hpp>
-
-         std::vector<uint8_t> wasm;
-         abi_def abi;
-         		
-         wasm = wast_to_wasm(System_wast);
-         cfg.System_code.assign(wasm.begin(), wasm.end());
-         abi = fc::json::from_string(System_abi).as<abi_def>();
-         cfg.System_abi = fc::raw::pack(abi);
-         
-         wasm = wast_to_wasm(eosio_token_wast);
-         cfg.token_code.assign(wasm.begin(), wasm.end());
-         abi  = fc::json::from_string(eosio_token_abi).as<abi_def>();
-         cfg.token_abi = fc::raw::pack(abi);
-         
-         wasm = wast_to_wasm(System01_wast);
-         cfg.System01_code.assign(wasm.begin(), wasm.end());
-         abi  = fc::json::from_string(System01_abi).as<abi_def>();
-         cfg.System01_abi = fc::raw::pack(abi);
-         
-         wasm = wast_to_wasm(eosio_msig_wast);
-         cfg.msig_code.assign(wasm.begin(), wasm.end());
-         abi  = fc::json::from_string(eosio_msig_abi).as<abi_def>();
-         cfg.msig_abi = fc::raw::pack(abi);
-
-        //  wasm = wast_to_wasm(eosio_bios_wast);
-        //  cfg.bios_code.assign(wasm.begin(), wasm.end());
-        //  abi  = fc::json::from_string(eosio_bios_abi).as<abi_def>();
-        //  cfg.bios_abi = fc::raw::pack(abi);
-/*         
-         ./libraries/chain/controller.cpp:782:      initialize_contract(N(eosio), conf.genesis.code, conf.genesis.abi, true);
-./libraries/chain/controller.cpp:783:      initialize_contract(N(eosio.token), conf.genesis.token_code, conf.genesis.token_abi);
-./libraries/chain/controller.cpp:1345:            initialize_contract(N(eosio), conf.System01_code, conf.System01_abi, true);
-./libraries/chain/controller.cpp:1351:            initialize_contract(N(eosio.msig), conf.msig_code, conf.msig_abi, true);
-
-*/
-		}
-
-
-      open(nullptr);
+      open();
 
       if (push_genesis)
          push_genesis_block();
    }
 
 
-   void base_tester::init(controller::config config, const snapshot_reader_ptr& snapshot) {
+   void base_tester::init(controller::config config) {
       cfg = config;
-      open(snapshot);
+      open();
    }
 
 
@@ -230,10 +74,9 @@ namespace eosio { namespace testing {
    }
 
 
-   void base_tester::open( const snapshot_reader_ptr& snapshot) {
+   void base_tester::open() {
       control.reset( new controller(cfg) );
-      control->add_indices();
-      control->startup( []() { return false; }, snapshot);
+      control->startup();
       chain_transactions.clear();
       control->accepted_block.connect([this]( const block_state_ptr& block_state ){
         FC_ASSERT( block_state->block );
@@ -250,9 +93,8 @@ namespace eosio { namespace testing {
    }
 
    signed_block_ptr base_tester::push_block(signed_block_ptr b) {
-      auto bs = control->create_block_state_future(b);
       control->abort_block();
-      control->push_block(bs);
+      control->push_block(b);
 
       auto itr = last_produced_block.find(b->producer);
       if (itr == last_produced_block.end() || block_header::num_from_id(b->id()) > block_header::num_from_id(itr->second)) {
@@ -269,6 +111,17 @@ namespace eosio { namespace testing {
 
       if( !control->pending_block_state() || control->pending_block_state()->header.timestamp != next_time ) {
          _start_block( next_time );
+      }
+
+      auto producer = control->head_block_state()->get_scheduled_producer(next_time);
+      private_key_type priv_key;
+      // Check if signing private key exist in the list
+      auto private_key_itr = block_signing_private_keys.find( producer.block_signing_key );
+      if( private_key_itr == block_signing_private_keys.end() ) {
+         // If it's not found, default to active k1 key
+         priv_key = get_private_key( producer.producer_name, "active" );
+      } else {
+         priv_key = private_key_itr->second;
       }
 
       if( !skip_pending_trxs ) {
@@ -291,10 +144,18 @@ namespace eosio { namespace testing {
          }
       }
 
-      auto head_block = _finish_block();
+
+
+      control->finalize_block();
+      control->sign_block( [&]( digest_type d ) {
+                    return priv_key.sign(d);
+                    });
+
+      control->commit_block();
+      last_produced_block[control->head_block_state()->header.producer] = control->head_block_state()->id;
 
       _start_block( next_time + fc::microseconds(config::block_interval_us));
-      return head_block;
+      return control->head_block_state()->block;
    }
 
    void base_tester::_start_block(fc::time_point block_time) {
@@ -311,30 +172,6 @@ namespace eosio { namespace testing {
       control->start_block( block_time, head_block_number - last_produced_block_num );
    }
 
-   signed_block_ptr base_tester::_finish_block() {
-      FC_ASSERT( control->pending_block_state(), "must first start a block before it can be finished" );
-
-      auto producer = control->head_block_state()->get_scheduled_producer( control->pending_block_time() );
-      private_key_type priv_key;
-      // Check if signing private key exist in the list
-      auto private_key_itr = block_signing_private_keys.find( producer.block_signing_key );
-      if( private_key_itr == block_signing_private_keys.end() ) {
-         // If it's not found, default to active k1 key
-         priv_key = get_private_key( producer.producer_name, "active" );
-      } else {
-         priv_key = private_key_itr->second;
-      }
-
-      control->finalize_block();
-      control->sign_block( [&]( digest_type d ) {
-                    return priv_key.sign(d);
-                    });
-
-      control->commit_block();
-      last_produced_block[control->head_block_state()->header.producer] = control->head_block_state()->id;
-
-      return control->head_block_state()->block;
-   }
 
    void base_tester::produce_blocks( uint32_t n, bool empty ) {
       if( empty ) {
@@ -342,9 +179,7 @@ namespace eosio { namespace testing {
             produce_empty_block();
       } else {
          for( uint32_t i = 0; i < n; ++i )
-         {
             produce_block();
-          }
       }
    }
 
@@ -381,10 +216,9 @@ namespace eosio { namespace testing {
    }
 
 
-  void base_tester::set_transaction_headers( transaction& trx, uint32_t expiration, uint32_t delay_sec ) const {
+  void base_tester::set_transaction_headers( signed_transaction& trx, uint32_t expiration, uint32_t delay_sec ) const {
      trx.expiration = control->head_block_time() + fc::seconds(expiration);
      trx.set_reference_block( control->head_block_id() );
-	 trx.fee = asset(100 * 10000);
 
      trx.max_net_usage_words = 0; // No limit
      trx.max_cpu_usage_ms = 0; // No limit
@@ -395,6 +229,7 @@ namespace eosio { namespace testing {
    transaction_trace_ptr base_tester::create_account( account_name a, account_name creator, bool multisig, bool include_code ) {
       signed_transaction trx;
       set_transaction_headers(trx);
+
       authority owner_auth;
       if( multisig ) {
          // multisig between account's owner key and creators active permission
@@ -416,10 +251,10 @@ namespace eosio { namespace testing {
       if( include_code ) {
          FC_ASSERT( owner_auth.threshold <= std::numeric_limits<weight_type>::max(), "threshold is too high" );
          FC_ASSERT( active_auth.threshold <= std::numeric_limits<weight_type>::max(), "threshold is too high" );
-         owner_auth.accounts.push_back( permission_level_weight{ {a, config::eosio_code_name},
+         owner_auth.accounts.push_back( permission_level_weight{ {a, config::dncio_code_name},
                                                                  static_cast<weight_type>(owner_auth.threshold) } );
          sort_permissions(owner_auth);
-         active_auth.accounts.push_back( permission_level_weight{ {a, config::eosio_code_name},
+         active_auth.accounts.push_back( permission_level_weight{ {a, config::dncio_code_name},
                                                                   static_cast<weight_type>(active_auth.threshold) } );
          sort_permissions(active_auth);
       }
@@ -433,13 +268,8 @@ namespace eosio { namespace testing {
                                 });
 
       set_transaction_headers(trx);
-      
       trx.sign( get_private_key( creator, "active" ), control->get_chain_id()  );
-      auto trace = push_transaction( trx );
-      
-      transfer( N(dnc), a, "100000.0000 DNC", "create_account", config::system_account_name );
-      
-      return trace;
+      return push_transaction( trx );
    }
 
    transaction_trace_ptr base_tester::push_transaction( packed_transaction& trx,
@@ -453,7 +283,7 @@ namespace eosio { namespace testing {
       if( r->except_ptr ) std::rethrow_exception( r->except_ptr );
       if( r->except ) throw *r->except;
       return r;
-   } FC_RETHROW_EXCEPTIONS( warn, "transaction_header: ${header}", ("header", transaction_header(trx.get_transaction()) )) }
+   } FC_CAPTURE_AND_RETHROW( (transaction_header(trx.get_transaction())) ) }
 
    transaction_trace_ptr base_tester::push_transaction( signed_transaction& trx,
                                                         fc::time_point deadline,
@@ -472,9 +302,7 @@ namespace eosio { namespace testing {
       if( r->except_ptr ) std::rethrow_exception( r->except_ptr );
       if( r->except)  throw *r->except;
       return r;
-   } FC_RETHROW_EXCEPTIONS( warn, "transaction_header: ${header}, billed_cpu_time_us: ${billed}",
-                            ("header", transaction_header(trx) ) ("billed", billed_cpu_time_us))
-   }
+   } FC_CAPTURE_AND_RETHROW( (transaction_header(trx))(billed_cpu_time_us) ) }
 
    typename base_tester::action_result base_tester::push_action(action&& act, uint64_t authorizer) {
       signed_transaction trx;
@@ -551,7 +379,8 @@ namespace eosio { namespace testing {
                                    const variant_object& data )const { try {
       const auto& acnt = control->get_account(code);
       auto abi = acnt.get_abi();
-      chain::abi_serializer abis(abi, abi_serializer_max_time);
+      chain::abi_serializer abis(abi);
+    //  auto a = control->get_account(code).get_abi();
 
       string action_type_name = abis.get_action_type(acttype);
       FC_ASSERT( action_type_name != string(), "unknown action type ${a}", ("a",acttype) );
@@ -561,7 +390,7 @@ namespace eosio { namespace testing {
       act.account = code;
       act.name = acttype;
       act.authorization = auths;
-      act.data = abis.variant_to_binary(action_type_name, data, abi_serializer_max_time);
+      act.data = abis.variant_to_binary(action_type_name, data);
       return act;
    } FC_CAPTURE_AND_RETHROW() }
 
@@ -579,7 +408,7 @@ namespace eosio { namespace testing {
         );
 
       signed_transaction trx;
-      abi_serializer::from_variant(pretty_trx, trx, get_resolver(), abi_serializer_max_time);
+      abi_serializer::from_variant(pretty_trx, trx, get_resolver());
       set_transaction_headers(trx);
       for(auto iter = keys.begin(); iter != keys.end(); iter++)
          trx.sign( *iter, control->get_chain_id() );
@@ -625,7 +454,7 @@ namespace eosio { namespace testing {
          );
 
       signed_transaction trx;
-      abi_serializer::from_variant(pretty_trx, trx, get_resolver(), abi_serializer_max_time);
+      abi_serializer::from_variant(pretty_trx, trx, get_resolver());
       set_transaction_headers(trx);
 
       trx.sign( get_private_key( from, "active" ), control->get_chain_id() );
@@ -659,7 +488,7 @@ namespace eosio { namespace testing {
          );
 
       signed_transaction trx;
-      abi_serializer::from_variant(pretty_trx, trx, get_resolver(), abi_serializer_max_time);
+      abi_serializer::from_variant(pretty_trx, trx, get_resolver());
       set_transaction_headers(trx);
 
       trx.sign( get_private_key( from, name(config::active_name).to_string() ), control->get_chain_id()  );
@@ -686,7 +515,7 @@ namespace eosio { namespace testing {
          );
 
       signed_transaction trx;
-      abi_serializer::from_variant(pretty_trx, trx, get_resolver(), abi_serializer_max_time);
+      abi_serializer::from_variant(pretty_trx, trx, get_resolver());
       set_transaction_headers(trx);
 
       trx.sign( get_private_key( currency, name(config::active_name).to_string() ), control->get_chain_id()  );
@@ -818,64 +647,6 @@ namespace eosio { namespace testing {
       push_transaction( trx );
    }
 
-   void base_tester::set_fee( account_name account, 
-     			 action_name action, 
-   				 asset fee, 
-   				 uint32_t cpu_limit, 
-   				 uint32_t net_limit,
-   				 uint32_t ram_limit,
-   				 const private_key_type* signer) {
-   	//   if(fee_map[action] == account) return ;
-      //   fee_map[action] = account;
-   	  signed_transaction trx;
-      trx.actions.emplace_back( vector<permission_level>{{account,config::active_name}},
-                                setfee{
-                                   .account    = account,
-                                   .action     = action,
-                                   .fee        = fee,
-                                   .cpu_limit  = cpu_limit,
-                                   .net_limit  = net_limit,
-                                   .ram_limit  = ram_limit
-                                });
-
-      set_transaction_headers(trx);
-      if( signer ) {
-         trx.sign( *signer, control->get_chain_id()  );
-      } else {
-         trx.sign( get_private_key( account, "active" ), control->get_chain_id()  );
-      }
-      push_transaction( trx );
-   }
-
-   void base_tester::set_fee( account_name auth, 
-   				 account_name account,
-     			 action_name action, 
-   				 asset fee, 
-   				 uint32_t cpu_limit, 
-   				 uint32_t net_limit,
-   				 uint32_t ram_limit,
-   				 const private_key_type* signer) {
-   	//   if(fee_map[action] == account) return ;
-      //   fee_map[action] = account;
-   	  signed_transaction trx;
-      trx.actions.emplace_back( vector<permission_level>{{auth,config::active_name}},
-                                setfee{
-                                   .account    = account,
-                                   .action     = action,
-                                   .fee        = fee,
-                                   .cpu_limit  = cpu_limit,
-                                   .net_limit  = net_limit,
-                                   .ram_limit  = ram_limit
-                                });
-
-      set_transaction_headers(trx);
-      if( signer ) {
-         trx.sign( *signer, control->get_chain_id()  );
-      } else {
-         trx.sign( get_private_key( auth, "active" ), control->get_chain_id()  );
-      }
-      push_transaction( trx );
-   }
 
    bool base_tester::chain_has_transaction( const transaction_id_type& txid ) const {
       return chain_transactions.count(txid) != 0;
@@ -910,7 +681,7 @@ namespace eosio { namespace testing {
    }
 
 
-   vector<char> base_tester::get_row_by_account( uint64_t code, uint64_t scope, uint64_t table, const account_name& act ) const {
+   vector<char> base_tester::get_row_by_account( uint64_t code, uint64_t scope, uint64_t table, const account_name& act ) {
       vector<char> data;
       const auto& db = control->db();
       const auto* t_id = db.find<chain::table_id_object, chain::by_code_scope_table>( boost::make_tuple( code, scope, table ) );
@@ -975,9 +746,8 @@ namespace eosio { namespace testing {
          for( int i = 1; i <= a.control->head_block_num(); ++i ) {
             auto block = a.control->fetch_block_by_number(i);
             if( block ) { //&& !b.control->is_known_block(block->id()) ) {
-               auto bs = b.control->create_block_state_future( block );
                b.control->abort_block();
-               b.control->push_block(bs); //, eosio::chain::validation_steps::created_block);
+               b.control->push_block(block); //, dncio::chain::validation_steps::created_block);
             }
          }
       };
@@ -987,10 +757,10 @@ namespace eosio { namespace testing {
    }
 
    void base_tester::push_genesis_block() {
-      //set_code(config::system_account_name, eosio_bios_wast);
+      set_code(config::system_account_name, dncio_bios_wast);
 
-      //set_abi(config::system_account_name, eosio_bios_abi);
-      produce_block();
+      set_abi(config::system_account_name, dncio_bios_abi);
+      //produce_block();
    }
 
    vector<producer_key> base_tester::get_producer_keys( const vector<account_name>& producer_names )const {
@@ -1006,7 +776,7 @@ namespace eosio { namespace testing {
    transaction_trace_ptr base_tester::set_producers(const vector<account_name>& producer_names) {
       auto schedule = get_producer_keys( producer_names );
 
-      return push_action( config::system_account_name, N(setprods), config::system_account_name,
+      return push_action( N(dncio), N(setprods), N(dncio),
                           fc::mutable_variant_object()("schedule", schedule));
    }
 
@@ -1061,7 +831,7 @@ namespace eosio { namespace testing {
       return match;
    }
 
-   bool eosio_assert_message_is::operator()( const eosio_assert_message_exception& ex ) {
+   bool dncio_assert_message_is::operator()( const dncio_assert_message_exception& ex ) {
       auto message = ex.get_log().at( 0 ).get_message();
       bool match = (message == expected);
       if( !match ) {
@@ -1070,7 +840,7 @@ namespace eosio { namespace testing {
       return match;
    }
 
-   bool eosio_assert_message_starts_with::operator()( const eosio_assert_message_exception& ex ) {
+   bool dncio_assert_message_starts_with::operator()( const dncio_assert_message_exception& ex ) {
       auto message = ex.get_log().at( 0 ).get_message();
       bool match = boost::algorithm::starts_with( message, expected );
       if( !match ) {
@@ -1079,7 +849,7 @@ namespace eosio { namespace testing {
       return match;
    }
 
-   bool eosio_assert_code_is::operator()( const eosio_assert_code_exception& ex ) {
+   bool dncio_assert_code_is::operator()( const dncio_assert_code_exception& ex ) {
       auto message = ex.get_log().at( 0 ).get_message();
       bool match = (message == expected);
       if( !match ) {
@@ -1088,7 +858,7 @@ namespace eosio { namespace testing {
       return match;
    }
 
-} }  /// eosio::testing
+} }  /// dncio::testing
 
 std::ostream& operator<<( std::ostream& osm, const fc::variant& v ) {
    //fc::json::to_stream( osm, v );

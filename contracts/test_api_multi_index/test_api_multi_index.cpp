@@ -1,8 +1,8 @@
 /**
  *  @file
- *  @copyright defined in eos/LICENSE.txt
+ *  @copyright defined in dnc/LICENSE.txt
  */
-#include <eosiolib/eosio.hpp>
+#include <dnciolib/dncio.hpp>
 #include "../test_api/test_api.hpp"
 
 #include "test_multi_index.cpp"
@@ -14,10 +14,6 @@ extern "C" {
       WASM_TEST_HANDLER_EX(test_multi_index, idx64_general);
       WASM_TEST_HANDLER_EX(test_multi_index, idx64_store_only);
       WASM_TEST_HANDLER_EX(test_multi_index, idx64_check_without_storing);
-      WASM_TEST_HANDLER_EX(test_multi_index, idx64_require_find_fail);
-      WASM_TEST_HANDLER_EX(test_multi_index, idx64_require_find_fail_with_msg);
-      WASM_TEST_HANDLER_EX(test_multi_index, idx64_require_find_sk_fail);
-      WASM_TEST_HANDLER_EX(test_multi_index, idx64_require_find_sk_fail_with_msg);
       WASM_TEST_HANDLER_EX(test_multi_index, idx128_general);
       WASM_TEST_HANDLER_EX(test_multi_index, idx128_store_only);
       WASM_TEST_HANDLER_EX(test_multi_index, idx128_check_without_storing);
@@ -45,7 +41,7 @@ extern "C" {
       WASM_TEST_HANDLER_EX(test_multi_index, idx64_pk_cache_sk_lookup);
 
       //unhandled test call
-      eosio_assert(false, "Unknown Test");
+      dncio_assert(false, "Unknown Test");
    }
 
 }

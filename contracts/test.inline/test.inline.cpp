@@ -1,3 +1,3 @@
 #include <test.inline/test.inline.hpp>
 
-EOSIO_ABI( eosio::testinline, (reqauth)(forward) )
+dncIO_ABI( dncio::testinline, (reqauth)(forward) )

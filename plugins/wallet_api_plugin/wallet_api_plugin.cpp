@@ -1,28 +1,28 @@
 /**
  *  @file
- *  @copyright defined in eos/LICENSE.txt
+ *  @copyright defined in dnc/LICENSE.txt
  */
-#include <eosio/wallet_api_plugin/wallet_api_plugin.hpp>
-#include <eosio/wallet_plugin/wallet_manager.hpp>
-#include <eosio/chain/exceptions.hpp>
-#include <eosio/chain/transaction.hpp>
+#include <dncio/wallet_api_plugin/wallet_api_plugin.hpp>
+#include <dncio/wallet_plugin/wallet_manager.hpp>
+#include <dncio/chain/exceptions.hpp>
+#include <dncio/chain/transaction.hpp>
 
 #include <fc/variant.hpp>
 #include <fc/io/json.hpp>
 
 #include <chrono>
 
-namespace eosio { namespace detail {
+namespace dncio { namespace detail {
   struct wallet_api_plugin_empty {};
 }}
 
-FC_REFLECT(eosio::detail::wallet_api_plugin_empty, );
+FC_REFLECT(dncio::detail::wallet_api_plugin_empty, );
 
-namespace eosio {
+namespace dncio {
 
 static appbase::abstract_plugin& _wallet_api_plugin = app().register_plugin<wallet_api_plugin>();
 
-using namespace eosio;
+using namespace dncio;
 
 #define CALL(api_name, api_handle, call_name, INVOKE, http_response_code) \
 {std::string("/v1/" #api_name "/" #call_name), \
@@ -52,21 +52,16 @@ using namespace eosio;
 
 #define INVOKE_V_R(api_handle, call_name, in_param) \
      api_handle.call_name(fc::json::from_string(body).as<in_param>()); \
-     eosio::detail::wallet_api_plugin_empty result;
+     dncio::detail::wallet_api_plugin_empty result;
 
 #define INVOKE_V_R_R(api_handle, call_name, in_param0, in_param1) \
      const auto& vs = fc::json::json::from_string(body).as<fc::variants>(); \
      api_handle.call_name(vs.at(0).as<in_param0>(), vs.at(1).as<in_param1>()); \
-     eosio::detail::wallet_api_plugin_empty result;
-
-#define INVOKE_V_R_R_R(api_handle, call_name, in_param0, in_param1, in_param2) \
-     const auto& vs = fc::json::json::from_string(body).as<fc::variants>(); \
-     api_handle.call_name(vs.at(0).as<in_param0>(), vs.at(1).as<in_param1>(), vs.at(2).as<in_param2>()); \
-     eosio::detail::wallet_api_plugin_empty result;
+     dncio::detail::wallet_api_plugin_empty result;
 
 #define INVOKE_V_V(api_handle, call_name) \
      api_handle.call_name(); \
-     eosio::detail::wallet_api_plugin_empty result;
+     dncio::detail::wallet_api_plugin_empty result;
 
 
 void wallet_api_plugin::plugin_startup() {
@@ -93,8 +88,6 @@ void wallet_api_plugin::plugin_startup() {
             INVOKE_V_R_R(wallet_mgr, unlock, std::string, std::string), 200),
        CALL(wallet, wallet_mgr, import_key,
             INVOKE_V_R_R(wallet_mgr, import_key, std::string, std::string), 201),
-       CALL(wallet, wallet_mgr, remove_key,
-            INVOKE_V_R_R_R(wallet_mgr, remove_key, std::string, std::string, std::string), 201),
        CALL(wallet, wallet_mgr, create_key,
             INVOKE_R_R_R(wallet_mgr, create_key, std::string, std::string), 201),
        CALL(wallet, wallet_mgr, list_wallets,
@@ -107,33 +100,20 @@ void wallet_api_plugin::plugin_startup() {
 }
 
 void wallet_api_plugin::plugin_initialize(const variables_map& options) {
-   try {
-      const auto& _http_plugin = app().get_plugin<http_plugin>();
-      if( !_http_plugin.is_on_loopback()) {
-         if( !_http_plugin.is_secure()) {
-            elog( "\n"
-                  "********!!!SECURITY ERROR!!!********\n"
-                  "*                                  *\n"
-                  "* --       Wallet API           -- *\n"
-                  "* - EXPOSED to the LOCAL NETWORK - *\n"
-                  "* -  HTTP RPC is NOT encrypted   - *\n"
-                  "* - Password and/or Private Keys - *\n"
-                  "* - are at HIGH risk of exposure - *\n"
-                  "*                                  *\n"
-                  "************************************\n" );
-         } else {
-            wlog( "\n"
-                  "**********SECURITY WARNING**********\n"
-                  "*                                  *\n"
-                  "* --       Wallet API           -- *\n"
-                  "* - EXPOSED to the LOCAL NETWORK - *\n"
-                  "* - Password and/or Private Keys - *\n"
-                  "* -   are at risk of exposure    - *\n"
-                  "*                                  *\n"
-                  "************************************\n" );
-         }
+   if (options.count("http-server-address")) {
+      const auto& lipstr = options.at("http-server-address").as<string>();
+      const auto& host = lipstr.substr(0, lipstr.find(':'));
+      if (host != "localhost" && host != "127.0.0.1") {
+         wlog("\n"
+              "*************************************\n"
+              "*                                   *\n"
+              "*  --   Wallet NOT on localhost  -- *\n"
+              "*  - Password and/or Private Keys - *\n"
+              "*  - are transferred unencrypted. - *\n"
+              "*                                   *\n"
+              "*************************************\n");
       }
-   } FC_LOG_AND_RETHROW()
+   }
 }
 
 

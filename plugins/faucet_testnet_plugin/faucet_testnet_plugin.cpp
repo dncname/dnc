@@ -1,11 +1,12 @@
 /**
  *  @file
- *  @copyright defined in eos/LICENSE.txt
+ *  @copyright defined in dnc/LICENSE.txt
  */
-#include <eosio/faucet_testnet_plugin/faucet_testnet_plugin.hpp>
-#include <eosio/chain_plugin/chain_plugin.hpp>
-#include <eosio/chain/plugin_interface.hpp>
-#include <eosio/chain/txfee_manager.hpp>
+#include <dncio/faucet_testnet_plugin/faucet_testnet_plugin.hpp>
+#include <dncio/chain_plugin/chain_plugin.hpp>
+#include <dncio/utilities/key_conversion.hpp>
+#include <dncio/chain/plugin_interface.hpp>
+#include <dncio/chain/txfee_manager.hpp>
 
 #include <fc/variant.hpp>
 #include <fc/io/json.hpp>
@@ -18,7 +19,7 @@
 
 #include <utility>
 
-namespace eosio { namespace detail {
+namespace dncio { namespace detail {
   struct faucet_testnet_empty {};
 
   struct faucet_testnet_keys {
@@ -41,18 +42,18 @@ namespace eosio { namespace detail {
   };
 }}
 
-FC_REFLECT(eosio::detail::faucet_testnet_empty, );
-FC_REFLECT(eosio::detail::faucet_testnet_keys, (owner)(active));
-FC_REFLECT(eosio::detail::faucet_testnet_create_account_params, (account)(keys));
-FC_REFLECT(eosio::detail::faucet_testnet_create_account_alternates_response, (alternates)(message));
-FC_REFLECT(eosio::detail::faucet_testnet_create_account_rate_limited_response, (message));
+FC_REFLECT(dncio::detail::faucet_testnet_empty, );
+FC_REFLECT(dncio::detail::faucet_testnet_keys, (owner)(active));
+FC_REFLECT(dncio::detail::faucet_testnet_create_account_params, (account)(keys));
+FC_REFLECT(dncio::detail::faucet_testnet_create_account_alternates_response, (alternates)(message));
+FC_REFLECT(dncio::detail::faucet_testnet_create_account_rate_limited_response, (message));
 
-namespace eosio {
+namespace dncio {
 
 static appbase::abstract_plugin& _faucet_testnet_plugin = app().register_plugin<faucet_testnet_plugin>();
 
-using namespace eosio::chain;
-using namespace eosio::chain::plugin_interface;
+using namespace dncio::chain;
+using namespace dncio::chain::plugin_interface;
 using public_key_type = chain::public_key_type;
 using key_pair = std::pair<std::string, std::string>;
 using results_pair = std::pair<uint32_t,fc::variant>;
@@ -189,7 +190,7 @@ struct faucet_testnet_plugin_impl {
          suggestion.pop_back();
       }
 
-      const eosio::detail::faucet_testnet_create_account_alternates_response response{
+      const dncio::detail::faucet_testnet_create_account_alternates_response response{
          names, "Account name is already in use."};
       return { conflict_with_alternates, fc::variant(response) };
    }
@@ -197,7 +198,7 @@ struct faucet_testnet_plugin_impl {
    results_pair create_account(const std::string& new_account_name, const fc::crypto::public_key& owner_pub_key, const fc::crypto::public_key& active_pub_key) {
 
       auto creating_account = database().find<account_object, by_name>(_create_account_name);
-      EOS_ASSERT(creating_account != nullptr, transaction_exception,
+      dnc_ASSERT(creating_account != nullptr, transaction_exception,
                  "To create account using the faucet, must already have created account \"${a}\"",("a",_create_account_name));
 
       auto existing_account = database().find<account_object, by_name>(new_account_name);
@@ -208,7 +209,7 @@ struct faucet_testnet_plugin_impl {
 
       if (_blocking_accounts)
       {
-         eosio::detail::faucet_testnet_create_account_rate_limited_response response{
+         dncio::detail::faucet_testnet_create_account_rate_limited_response response{
             "Rate limit exceeded, the max is 1 request per " + fc::to_string(_create_interval_msec) +
             " milliseconds. Come back later."};
          return std::make_pair(too_many_requests, fc::variant(response));
@@ -233,7 +234,7 @@ struct faucet_testnet_plugin_impl {
       trx.set_reference_block(cc.head_block_id());
 
       auto txm = txfee_manager();
-      trx.fee = txm.get_required_fee(cc, (transaction)trx);
+      trx.fee = txm.get_required_fee((transaction)trx);
 
       trx.sign(_create_account_private_key, chainid);
 
@@ -243,7 +244,7 @@ struct faucet_testnet_plugin_impl {
       try {
          app().get_method<incoming::methods::transaction_async>()(std::make_shared<packed_transaction>(packed_trx), true, [](const auto&){});
          auto trx_trace_ptr = cc.push_transaction(std::make_shared<transaction_metadata>(packed_trx), fc::time_point::maximum(), 0);
-         pretty_output = cc.to_variant_with_abi( *trx_trace_ptr, plugin.get_abi_serializer_max_time() );
+         pretty_output = cc.to_variant_with_abi( *trx_trace_ptr );;
       } catch (const account_name_exists_exception& ) {
          // another transaction ended up adding the account, so look for alternates
          return find_alternates(new_account_name);
@@ -257,7 +258,7 @@ struct faucet_testnet_plugin_impl {
    }
 
    results_pair create_faucet_account(const std::string& body) {
-      const eosio::detail::faucet_testnet_create_account_params params = fc::json::from_string(body).as<eosio::detail::faucet_testnet_create_account_params>();
+      const dncio::detail::faucet_testnet_create_account_params params = fc::json::from_string(body).as<dncio::detail::faucet_testnet_create_account_params>();
       return create_account(params.account, fc::crypto::public_key(params.keys.owner), fc::crypto::public_key(params.keys.active));
    }
 
@@ -287,7 +288,7 @@ const uint32_t faucet_testnet_plugin_impl::_default_create_interval_msec = 1000;
 const uint32_t faucet_testnet_plugin_impl::_default_create_alternates_to_return = 3;
 const std::string faucet_testnet_plugin_impl::_default_create_account_name = "faucet";
 // defaults to the public/private key of init accounts in private testnet genesis.json
-const key_pair faucet_testnet_plugin_impl::_default_key_pair = {"EOS6MRyAjQq8ud7hVNYcfnVPJqcVpscN5So8BhtHuGYqET5GDW5CV", "5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3"};
+const key_pair faucet_testnet_plugin_impl::_default_key_pair = {"dnc6MRyAjQq8ud7hVNYcfnVPJqcVpscN5So8BhtHuGYqET5GDW5CV", "5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3"};
 
 
 faucet_testnet_plugin::faucet_testnet_plugin()
@@ -309,16 +310,14 @@ void faucet_testnet_plugin::set_program_options(options_description&, options_de
 }
 
 void faucet_testnet_plugin::plugin_initialize(const variables_map& options) {
-   try {
-      my->_create_interval_msec = options.at( "faucet-create-interval-ms" ).as<uint32_t>();
-      my->_create_account_name = options.at( "faucet-name" ).as<std::string>();
+   my->_create_interval_msec = options.at("faucet-create-interval-ms").as<uint32_t>();
+   my->_create_account_name = options.at("faucet-name").as<std::string>();
 
-      auto faucet_key_pair = fc::json::from_string( options.at( "faucet-private-key" ).as<std::string>()).as<key_pair>();
-      my->_create_account_public_key = public_key_type( faucet_key_pair.first );
-      ilog( "Public Key: ${public}", ("public", my->_create_account_public_key));
-      fc::crypto::private_key private_key( faucet_key_pair.second );
-      my->_create_account_private_key = std::move( private_key );
-   } FC_LOG_AND_RETHROW()
+   auto faucet_key_pair = fc::json::from_string(options.at("faucet-private-key").as<std::string>()).as<key_pair>();
+   my->_create_account_public_key = public_key_type(faucet_key_pair.first);
+   ilog("Public Key: ${public}", ("public", my->_create_account_public_key));
+   fc::crypto::private_key private_key(faucet_key_pair.second);
+   my->_create_account_private_key = std::move(private_key);
 }
 
 void faucet_testnet_plugin::plugin_startup() {
