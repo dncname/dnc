@@ -1,7 +1,0 @@
-add_subdirectory( noddnc )
-add_subdirectory( cldnc )
-add_subdirectory( kdncd )
-add_subdirectory( dncio-launcher )
-add_subdirectory( dncio-applesedemo )
-add_subdirectory( dncio-abigen )
-add_subdirectory( genesis )
